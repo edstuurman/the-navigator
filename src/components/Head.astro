@@ -1,0 +1,322 @@
+---
+import '../styles/global.css';
+import { authorAvatarImage as FallbackImage } from '../utils/authorImages';
+import type { ImageMetadata } from 'astro';
+import { themeConfig } from '../theme.config';
+
+export interface BreadcrumbProp {
+  name: string;
+  href?: string;
+}
+
+export interface Props {
+  pageTitle: string;
+  description?: string;
+  image?: ImageMetadata | string;
+  imageAlt?: string;
+  type?: 'website' | 'article' | 'profile' | 'blog' | 'gallery';
+  publishedTime?: Date | string;
+  modifiedTime?: Date | string;
+  author?: string;
+  tags?: string[];
+  section?: string;
+  noindex?: boolean;
+  breadcrumbs?: BreadcrumbProp[];
+}
+
+const {
+  pageTitle,
+  description = themeConfig.site.description,
+  image = "/og/home.png",
+  imageAlt,
+  type = 'website',
+  publishedTime,
+  modifiedTime,
+  author = themeConfig.author.name,
+  tags = [],
+  section,
+  noindex = false,
+  breadcrumbs,
+} = Astro.props;
+
+const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+const ogType = type === 'article' ? 'article' : type === 'profile' ? 'profile' : 'website';
+
+const defaultKeywords = themeConfig.site.defaultKeywords;
+const allKeywords = Array.from(new Set([...defaultKeywords, ...tags]));
+
+// Resolve image URL
+const imageURL = typeof image === 'string'
+  ? new URL(image, Astro.site)
+  : new URL(image.src, Astro.site);
+
+const isOgEndpoint = typeof image === 'string' && image.startsWith('/og/');
+const imageWidth = typeof image === 'object' && image !== null && 'width' in image
+  ? image.width
+  : (isOgEndpoint ? 1200 : undefined);
+const imageHeight = typeof image === 'object' && image !== null && 'height' in image
+  ? image.height
+  : (isOgEndpoint ? 630 : undefined);
+const imageFormat = typeof image === 'object' && image !== null && 'format' in image
+  ? `image/${image.format}`
+  : (isOgEndpoint ? 'image/png' : undefined);
+const resolvedImageAlt = imageAlt || pageTitle;
+
+// Format dates if present
+const publishedISO = publishedTime
+  ? (publishedTime instanceof Date ? publishedTime.toISOString() : new Date(publishedTime).toISOString())
+  : undefined;
+const modifiedISO = modifiedTime
+  ? (modifiedTime instanceof Date ? modifiedTime.toISOString() : new Date(modifiedTime).toISOString())
+  : undefined;
+
+// Person Schema (used across site to establish author/creator identity)
+const sameAsLinks = Object.values(themeConfig.socials).filter((v): v is string => Boolean(v));
+
+const personSchema = {
+  "@context": "https://schema.org",
+  "@type": "Person",
+  "name": themeConfig.author.name,
+  ...(themeConfig.author.alternateName ? { "alternateName": themeConfig.author.alternateName } : {}),
+  "url": themeConfig.site.url,
+  "image": new URL(FallbackImage.src, Astro.site).href,
+  "jobTitle": themeConfig.author.jobTitle,
+  "description": themeConfig.author.bio,
+  "sameAs": sameAsLinks,
+  "knowsAbout": themeConfig.author.knowsAbout
+};
+
+// Determine page-specific Google Rich Result Schema
+let pageSchema: Record<string, any>;
+
+if (type === 'article') {
+  pageSchema = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": canonicalURL.href
+    },
+    "headline": pageTitle,
+    "description": description,
+    "image": imageURL.href,
+    "datePublished": publishedISO,
+    "dateModified": modifiedISO || publishedISO,
+    "author": {
+      "@type": "Person",
+      "name": author,
+      "url": themeConfig.site.url
+    },
+    "publisher": {
+      "@type": "Person",
+      "name": themeConfig.author.name,
+      "url": themeConfig.site.url
+    },
+    ...(tags.length > 0 ? { "keywords": tags.join(", ") } : {}),
+    ...(section ? { "articleSection": section } : {})
+  };
+} else if (type === 'profile') {
+  pageSchema = {
+    "@context": "https://schema.org",
+    "@type": "ProfilePage",
+    "name": pageTitle,
+    "url": canonicalURL.href,
+    "description": description,
+    "mainEntity": {
+      "@type": "Person",
+      "name": themeConfig.author.name,
+      ...(themeConfig.author.alternateName ? { "alternateName": themeConfig.author.alternateName } : {}),
+      "url": themeConfig.site.url,
+      "image": new URL(FallbackImage.src, Astro.site).href,
+      "jobTitle": themeConfig.author.jobTitle,
+      "description": description,
+      "sameAs": sameAsLinks,
+      "knowsAbout": themeConfig.author.knowsAbout
+    }
+  };
+} else if (type === 'blog') {
+  pageSchema = {
+    "@context": "https://schema.org",
+    "@type": "Blog",
+    "name": pageTitle,
+    "url": canonicalURL.href,
+    "description": description,
+    "author": {
+      "@type": "Person",
+      "name": themeConfig.author.name,
+      "url": themeConfig.site.url
+    },
+    "publisher": {
+      "@type": "Person",
+      "name": themeConfig.author.name,
+      "url": themeConfig.site.url
+    }
+  };
+} else if (type === 'gallery') {
+  pageSchema = {
+    "@context": "https://schema.org",
+    "@type": "ImageGallery",
+    "name": pageTitle,
+    "url": canonicalURL.href,
+    "description": description,
+    "author": {
+      "@type": "Person",
+      "name": themeConfig.author.name,
+      "url": themeConfig.site.url
+    }
+  };
+} else {
+  pageSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": themeConfig.site.title,
+    "alternateName": themeConfig.site.domain,
+    "url": `${themeConfig.site.url}/`,
+    "description": description,
+    "publisher": {
+      "@type": "Person",
+      "name": themeConfig.author.name,
+      "url": themeConfig.site.url
+    }
+  };
+}
+
+// Compute BreadcrumbList Schema for Google Rich Results
+interface BreadcrumbItemSchema {
+  name: string;
+  item: string;
+}
+
+let breadcrumbItems: BreadcrumbItemSchema[] = [];
+
+if (breadcrumbs && breadcrumbs.length > 0) {
+  breadcrumbItems = [
+    { name: "Home", item: `${themeConfig.site.url}/` },
+    ...breadcrumbs
+      .filter((b) => b.name.toLowerCase() !== "home")
+      .map((b) => ({
+        name: b.name,
+        item: b.href ? new URL(b.href, Astro.site).href : canonicalURL.href
+      }))
+  ];
+} else if (canonicalURL.pathname !== "/" && canonicalURL.pathname !== "") {
+  const cleanPath = canonicalURL.pathname.replace(/^\/|\/$/g, "");
+  const segments = cleanPath.split("/").filter(Boolean);
+
+  breadcrumbItems.push({ name: "Home", item: `${themeConfig.site.url}/` });
+
+  if (segments.length === 1) {
+    const seg = segments[0];
+    const name = seg === "about" ? "About" : seg === "blog" ? "Blog" : seg === "photography" ? "Photography" : seg === "tags" ? "Tags" : pageTitle;
+    breadcrumbItems.push({ name, item: canonicalURL.href });
+  } else if (segments[0] === "blog" && segments.length >= 2) {
+    breadcrumbItems.push({ name: "Blog", item: `${themeConfig.site.url}/blog/` });
+    const cleanTitle = pageTitle.replace(new RegExp(` - ${themeConfig.site.title}$`), "").trim();
+    breadcrumbItems.push({ name: cleanTitle, item: canonicalURL.href });
+  } else if (segments[0] === "tags" && segments.length >= 2) {
+    breadcrumbItems.push({ name: "Tags", item: `${themeConfig.site.url}/tags/` });
+    const tagName = section || segments[1];
+    breadcrumbItems.push({ name: `#${tagName}`, item: canonicalURL.href });
+  }
+}
+
+const breadcrumbSchema = breadcrumbItems.length > 1
+  ? {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": breadcrumbItems.map((item, idx) => ({
+        "@type": "ListItem",
+        "position": idx + 1,
+        "name": item.name,
+        "item": item.item
+      }))
+    }
+  : undefined;
+---
+
+<meta charset="utf-8" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="sitemap" href="/sitemap-index.xml" />
+<link rel="alternate" type="text/plain" href="/llms.txt" title="LLMs.txt" />
+<link rel="alternate" type="text/plain" href="/llms-full.txt" title="LLMs full archive" />
+<link rel="alternate" type="application/json" href="/llms.json" title="LLMs.json" />
+<link
+	rel="alternate"
+	type="application/rss+xml"
+	title={`${themeConfig.site.title} (RSS Feed)`}
+	href={new URL('rss.xml', Astro.site)}
+/>
+<link
+	rel="alternate"
+	type="application/atom+xml"
+	title={`${themeConfig.site.title} (Atom Feed)`}
+	href={new URL('atom.xml', Astro.site)}
+/>
+<link rel="canonical" href={canonicalURL} />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="generator" content={Astro.generator} />
+
+{noindex && <meta name="robots" content="noindex, nofollow" />}
+
+<!-- Primary Meta Tags -->
+<title>{pageTitle}</title>
+<meta name="title" content={pageTitle} />
+<meta name="description" content={description} />
+<meta name="author" content={author} />
+<meta name="keywords" content={allKeywords.join(", ")} />
+
+<!-- Open Graph / Facebook -->
+<meta property="og:site_name" content={themeConfig.site.title} />
+<meta property="og:locale" content={themeConfig.site.locale} />
+<meta property="og:type" content={ogType} />
+<meta property="og:url" content={canonicalURL.href} />
+<meta property="og:title" content={pageTitle} />
+<meta property="og:description" content={description} />
+<meta property="og:image" content={imageURL.href} />
+<meta property="og:image:secure_url" content={imageURL.href} />
+<meta property="og:image:alt" content={resolvedImageAlt} />
+{imageWidth && <meta property="og:image:width" content={String(imageWidth)} />}
+{imageHeight && <meta property="og:image:height" content={String(imageHeight)} />}
+{imageFormat && <meta property="og:image:type" content={imageFormat} />}
+
+<!-- Open Graph Article Tags -->
+{type === 'article' && publishedISO && <meta property="article:published_time" content={publishedISO} />}
+{type === 'article' && modifiedISO && <meta property="article:modified_time" content={modifiedISO} />}
+{type === 'article' && <meta property="article:author" content={author} />}
+{type === 'article' && section && <meta property="article:section" content={section} />}
+{type === 'article' && tags.map((t) => <meta property="article:tag" content={t} />)}
+
+<!-- Twitter -->
+<meta name="twitter:card" property="twitter:card" content="summary_large_image" />
+<meta name="twitter:url" property="twitter:url" content={canonicalURL.href} />
+<meta name="twitter:title" property="twitter:title" content={pageTitle} />
+<meta name="twitter:description" property="twitter:description" content={description} />
+<meta name="twitter:image" property="twitter:image" content={imageURL.href} />
+<meta name="twitter:image:alt" property="twitter:image:alt" content={resolvedImageAlt} />
+
+<!-- Structured Data -->
+<script type="application/ld+json" set:html={JSON.stringify(personSchema)} />
+<script type="application/ld+json" set:html={JSON.stringify(pageSchema)} />
+{breadcrumbSchema && <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />}
+
+{/* Umami Analytics (configurable via theme.config.ts) */}
+{themeConfig.integrations.umami.enabled && themeConfig.integrations.umami.websiteId && (
+  <script is:inline defer src={themeConfig.integrations.umami.scriptUrl} data-website-id={themeConfig.integrations.umami.websiteId}></script>
+)}
+
+<!-- Theme script: prevent flash of incorrect theme -->
+<script is:inline>
+  (() => {
+    try {
+      const savedTheme = localStorage.getItem('theme');
+      const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
+        document.documentElement.classList.add('dark');
+        document.documentElement.classList.remove('light');
+      } else {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
+      }
+    } catch (_) {}
+  })();
+</script>

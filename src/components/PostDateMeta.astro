@@ -1,0 +1,24 @@
+---
+interface Props {
+  pubDate: Date;
+  updatedDate?: Date;
+  class?: string;
+}
+
+const {
+  pubDate,
+  updatedDate,
+  class: className = '',
+} = Astro.props;
+---
+
+<div class:list={['flex flex-wrap items-center gap-y-1 text-xs text-gray-500 dark:text-gray-400', className]}>
+  <time datetime={pubDate.toISOString()}>
+    {pubDate.toLocaleDateString('en-us', { year: 'numeric', month: 'short', day: 'numeric' })}
+  </time>
+  {updatedDate && (
+    <span class="ml-2 font-mono text-[10px] text-gray-400 dark:text-gray-500">
+      (updated {updatedDate.toLocaleDateString('en-us', { year: 'numeric', month: 'short', day: 'numeric' })})
+    </span>
+  )}
+</div>

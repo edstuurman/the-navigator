@@ -1,0 +1,74 @@
+---
+import Head from '../components/Head.astro';
+import Navigation from '../components/Navigation.astro';
+import Footer from '../components/Footer.astro';
+import Breadcrumbs, { type BreadcrumbItem } from '../components/Breadcrumbs.astro';
+import type { ComponentProps } from 'astro/types';
+import { siteConfig } from '../site.config';
+
+export type Props = ComponentProps<typeof Head> & {
+  breadcrumbs?: BreadcrumbItem[];
+  showBreadcrumbs?: boolean;
+};
+
+const props = Astro.props;
+const pathname = Astro.url.pathname;
+const cleanPath = pathname.replace(/^\/|\/$/g, "");
+const isHome = cleanPath === "";
+const is404 = cleanPath === "404" || pathname.startsWith("/404");
+const showBreadcrumbs = props.showBreadcrumbs !== undefined ? props.showBreadcrumbs : (!isHome && !is404);
+const hasBreadcrumbExtra = Astro.slots.has('breadcrumb-extra');
+const showSubBar = showBreadcrumbs || hasBreadcrumbExtra;
+
+let breadcrumbsList: BreadcrumbItem[] = props.breadcrumbs ? [...props.breadcrumbs] : [];
+
+if (showBreadcrumbs && breadcrumbsList.length === 0) {
+  const segments = cleanPath.split("/").filter(Boolean);
+
+  if (segments.length === 1) {
+    const seg = segments[0];
+    const name = seg === "about" ? "About" : seg === "now" ? "Now" : seg === "log" ? "Log" : seg === "contact" ? "Contact" : seg === "blog" ? "Blog" : seg === "photography" ? "Photography" : seg === "tags" ? "Tags" : (props.pageTitle || seg);
+    breadcrumbsList = [{ name }];
+  } else if (segments[0] === "blog" && segments.length >= 2) {
+    const escapedTitle = siteConfig.site.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const suffixPattern = new RegExp(` - ${escapedTitle}$| — ${escapedTitle}.*$`);
+    const cleanTitle = props.pageTitle ? props.pageTitle.replace(suffixPattern, "").trim() : "Article";
+    breadcrumbsList = [{ name: "Blog", href: "/blog/" }, { name: cleanTitle }];
+  } else if (segments[0] === "tags" && segments.length >= 2) {
+    const tagName = props.section || segments[1];
+    breadcrumbsList = [{ name: "Tags", href: "/tags/" }, { name: `#${tagName}` }];
+  }
+}
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <Head {...props} breadcrumbs={breadcrumbsList} />
+  </head>
+  <body class="bg-white text-gray-900 antialiased dark:bg-gray-900 dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-200">
+    <div class="flex-1 flex flex-col">
+      <Navigation />
+      {showSubBar && (
+        <aside aria-label={showBreadcrumbs ? "Breadcrumb navigation" : "Sub-navigation"} class="border-b border-gray-200/70 dark:border-gray-800 bg-gray-50/80 dark:bg-gray-800/40 transition-colors">
+          <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 min-h-11 sm:h-11 py-1.5 sm:py-0 flex flex-wrap sm:flex-nowrap items-center justify-between gap-x-4 gap-y-2 min-w-0">
+            {showBreadcrumbs ? (
+              <Breadcrumbs items={breadcrumbsList} />
+            ) : (
+              <div aria-hidden="true" />
+            )}
+            <slot name="breadcrumb-extra" />
+          </div>
+        </aside>
+      )}
+      <main class="flex-1">
+        <slot />
+      </main>
+      <Footer />
+    </div>
+    <script>
+      import '../scripts/tech-tooltips';
+      import '../scripts/border-beam';
+    </script>
+  </body>
+</html>

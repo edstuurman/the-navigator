@@ -1,0 +1,618 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import AmbientGlow from '../../components/AmbientGlow.astro';
+import AuthorChip from '../../components/AuthorChip.astro';
+import PostDateMeta from '../../components/PostDateMeta.astro';
+import SectionNav from '../SectionNav.astro';
+import PaginationControls from '../PaginationControls.astro';
+import { getCollection, getEntry } from 'astro:content';
+import TagList from '../TagList.astro';
+import VideoCardPoster from '../VideoCardPoster.astro';
+import { getReadingTime } from '../../utils/readingTime';
+import { getFirstVideoEmbed } from '../../utils/postVideo';
+import { OLDER_BLOGS_PAGE_SIZE } from '../../utils/pagination';
+
+interface Props {
+  currentPage?: number;
+}
+
+const { currentPage = 1 } = Astro.props;
+
+function getArticleIntroParagraphs(body: string): string[] {
+  if (!body) return [];
+  const cleanBody = body
+    .replace(/^---[\s\S]*?---\s*/, '')
+    .replace(/```[\s\S]*?```/g, '');
+  const rawParagraphs = cleanBody
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(
+      (p) =>
+        p &&
+        !p.startsWith('>') &&
+        !p.startsWith('#') &&
+        !p.startsWith('---') &&
+        !p.startsWith('```') &&
+        !p.startsWith('|') &&
+        !p.startsWith('!['),
+    )
+    .map((p) =>
+      p
+        .replace(/<abbr>([^<]+)<\/abbr>/g, '$1')
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+        .replace(/[`*_]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim(),
+    )
+    .filter((p) => p.length > 0);
+
+  return rawParagraphs.slice(0, 10);
+}
+
+const posts = (await getCollection('blog')).sort(
+  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+);
+
+const isInitialView = currentPage === 1;
+const featuredVideo = isInitialView && posts[0] ? await getFirstVideoEmbed(posts[0].body) : null;
+const rightColPosts = isInitialView
+  ? await Promise.all(
+      posts.slice(1, 3).map(async (post) => ({
+        post,
+        video: await getFirstVideoEmbed(post.body),
+      }))
+    )
+  : [];
+const olderPosts = posts.slice(3);
+const startIdx = (currentPage - 1) * OLDER_BLOGS_PAGE_SIZE;
+const paginatedOlderPosts = olderPosts.slice(startIdx, startIdx + OLDER_BLOGS_PAGE_SIZE);
+const paginatedOlderPostsWithVideo = await Promise.all(
+  paginatedOlderPosts.map(async (post) => ({
+    post,
+    video: await getFirstVideoEmbed(post.body),
+  }))
+);
+
+const blogPageEntry = await getEntry('pages', 'blog');
+const blogPageData = blogPageEntry!.data;
+const pageTitle = isInitialView
+  ? blogPageData.pageTitle
+  : `${blogPageData.pageTitle} (Page ${currentPage})`;
+const description = blogPageData.description;
+const breadcrumbs = isInitialView
+  ? [{ name: 'Blog' }]
+  : [{ name: 'Blog', href: '/blog/' }, { name: `Page ${currentPage}` }];
+const OlderHeadingTag = isInitialView ? 'h2' : 'h1';
+
+const blogSections = [
+  { id: 'featured', label: 'Featured' },
+  { id: 'older-posts', label: 'Older Posts' },
+];
+---
+
+<BaseLayout
+  pageTitle={pageTitle}
+  description={description}
+  image="/og/blog.png"
+  type="blog"
+  breadcrumbs={breadcrumbs}
+>
+  {isInitialView && (
+    <SectionNav sections={blogSections} slot="breadcrumb-extra" ariaLabel="Blog page sections" />
+  )}
+
+  {isInitialView && (
+    <section id="featured" aria-label="Featured articles" class="scroll-mt-16 relative isolate overflow-hidden py-24 sm:py-32">
+      <AmbientGlow preset="blog-top" />
+
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-8">
+          {posts.slice(0, 1).map((post) => {
+            const introParagraphs = getArticleIntroParagraphs(post.body);
+            return (
+              <article id="featured-article" class="mx-auto flex h-full w-full max-w-2xl flex-col lg:col-span-6 lg:max-w-none">
+                <PostDateMeta
+                  pubDate={post.data.pubDate}
+                  updatedDate={post.data.updatedDate}
+                  class="mb-3 shrink-0"
+                />
+                <div class="border-beam-card group relative flex flex-1 flex-col justify-between overflow-hidden rounded-2xl bg-white/85 dark:bg-gray-800/85 shadow-lg ring-1 ring-gray-900/5 dark:ring-white/10 backdrop-blur-sm transition hover:shadow-xl">
+                  {featuredVideo && (
+                    <VideoCardPoster
+                      videoId={featuredVideo.videoId}
+                      title={featuredVideo.title}
+                      thumbUrl={featuredVideo.thumbUrl}
+                      badgeLabel="Featured Video"
+                      playButtonSize="lg"
+                    />
+                  )}
+                  <div class="flex flex-1 flex-col justify-between p-6">
+                    <div>
+                      <h2 class="text-3xl font-semibold tracking-tight text-pretty text-gray-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 sm:text-4xl">
+                        <a href={`/blog/${post.id}/`}>
+                          <span class="absolute inset-0"></span>
+                          {post.data.title}
+                        </a>
+                      </h2>
+                      <p id="featured-desc" class="mt-4 text-base/7 font-medium text-gray-600 dark:text-gray-300">
+                        {post.data.description}
+                      </p>
+                      {introParagraphs.length > 0 && (
+                        <div id="featured-preview-container" class="mt-4 space-y-3 border-t border-gray-100 dark:border-gray-700/60 pt-4 text-sm/6 text-gray-500 dark:text-gray-400">
+                          {introParagraphs.map((para, pIdx) => (
+                            <p data-preview-idx={pIdx} class={pIdx > 0 ? 'hidden' : 'line-clamp-2'}>{para}</p>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div id="featured-footer" class="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 dark:border-gray-700/60 pt-3 text-xs">
+                      <div class="relative z-10">
+                        <TagList tags={post.data.tags} limit={3} />
+                      </div>
+                      <div class="flex items-center gap-3">
+                        <span class="inline-flex items-center gap-1 text-gray-400 dark:text-gray-500">
+                          <svg class="size-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                            <circle cx="12" cy="12" r="10" />
+                            <polyline points="12 6 12 12 16 14" />
+                          </svg>
+                          {getReadingTime(post.body)}
+                        </span>
+                        <span class="inline-flex items-center gap-1 text-sm font-semibold text-amber-600 dark:text-amber-500 group-hover:text-amber-500 dark:group-hover:text-amber-400">
+                          <span>Read</span>
+                          <span aria-hidden="true">&rarr;</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <AuthorChip author={post.data.author} loading="eager" class="mt-6 shrink-0" />
+              </article>
+            );
+          })}
+
+          <div class="mx-auto w-full max-w-2xl max-lg:border-t max-lg:border-gray-200/80 dark:max-lg:border-gray-800 max-lg:pt-12 lg:col-span-6 lg:max-w-none">
+            <div id="blog-right-col" class="flex flex-col gap-10">
+              {rightColPosts.map(({ post, video }, rightIdx) => {
+                const postHasVideo = Boolean(video);
+                return (
+                <article class="flex max-w-xl flex-1 flex-col">
+                  <PostDateMeta
+                    pubDate={post.data.pubDate}
+                    updatedDate={post.data.updatedDate}
+                    class="mb-3"
+                  />
+                  <div class="border-beam-card group relative flex max-w-xl flex-1 flex-col justify-between overflow-hidden rounded-2xl bg-white/85 dark:bg-gray-800/85 shadow-lg ring-1 ring-gray-900/5 dark:ring-white/10 backdrop-blur-sm transition hover:shadow-xl">
+                    {video && (
+                      <VideoCardPoster
+                        videoId={video.videoId}
+                        title={video.title}
+                        thumbUrl={video.thumbUrl}
+                        badgeLabel="Video Article"
+                        playButtonSize="md"
+                      />
+                    )}
+                    <div class="flex flex-1 flex-col justify-between p-6">
+                      <div>
+                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400">
+                          <a href={`/blog/${post.id}/`}>
+                            <span class="absolute inset-0"></span>
+                            {post.data.title}
+                          </a>
+                        </h2>
+                        {!video && (
+                          <p class="mt-4 text-sm/6 text-gray-600 dark:text-gray-300">{post.data.description}</p>
+                        )}
+                      </div>
+                      <div class="mt-4 flex items-center justify-between gap-3 border-t border-gray-100 dark:border-gray-700/60 pt-3 text-xs">
+                        <div class="relative z-10 min-w-0 flex-1 overflow-hidden">
+                          <TagList tags={post.data.tags} limit={3} singleLine={true} />
+                        </div>
+                        <span class="inline-flex shrink-0 items-center gap-1 text-gray-400 dark:text-gray-500">
+                          <svg class="size-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                            <circle cx="12" cy="12" r="10" />
+                            <polyline points="12 6 12 12 16 14" />
+                          </svg>
+                          {getReadingTime(post.body)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <AuthorChip author={post.data.author} loading={rightIdx === 0 ? 'eager' : 'lazy'} />
+                </article>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- Older blogs section with demarking background on Page 1 and standalone clean canvas on Pages 2+ -->
+  <div
+    id="older-posts"
+    class:list={[
+      'relative isolate overflow-hidden py-24 sm:py-32 transition-colors scroll-mt-16',
+      isInitialView &&
+        'bg-gray-50/75 dark:bg-gray-800/35 border-t border-gray-200/75 dark:border-gray-800/80',
+    ]}
+  >
+    <AmbientGlow preset="blog-archive" />
+
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="mx-auto max-w-2xl text-center">
+        <OlderHeadingTag class="text-4xl font-semibold tracking-tight text-pretty text-gray-900 dark:text-white sm:text-5xl">
+          {blogPageData.heading ?? 'Older blog posts'}
+        </OlderHeadingTag>
+        <p class="mt-2 text-lg/8 text-gray-600 dark:text-gray-400">
+          {blogPageData.subtitle}
+        </p>
+        {!isInitialView && (
+          <div class="mt-4">
+            <a
+              href="/blog/"
+              class="inline-flex items-center gap-1.5 text-sm font-semibold text-amber-600 dark:text-amber-400 hover:text-amber-500 dark:hover:text-amber-300 transition-colors"
+            >
+              <span aria-hidden="true">&larr;</span>
+              <span>Back to latest featured articles</span>
+            </a>
+          </div>
+        )}
+      </div>
+
+      <!-- Timeline Stream matching /log/ style -->
+      <div class="w-full mt-12 sm:mt-16">
+        <div class="relative ml-4 sm:ml-6 pl-6 sm:pl-8 space-y-12">
+          <!-- Continuous vertical spine line -->
+          <div
+            class="absolute left-0 top-2 bottom-2 w-0.5 bg-gradient-to-b from-amber-500 via-amber-400/60 to-gray-300 dark:via-amber-500/40 dark:to-gray-700"
+            aria-hidden="true"
+          ></div>
+
+          {paginatedOlderPostsWithVideo.map(({ post, video }) => {
+            const postHasVideo = Boolean(video);
+            return (
+            <article class="relative group/entry">
+              <!-- Timeline dot node aligned with the date -->
+              <div
+                class="absolute -left-6 sm:-left-8 ml-[1px] -translate-x-1/2 top-1 size-3.5 rounded-full bg-amber-600 dark:bg-amber-500 ring-4 ring-white dark:ring-gray-900 shadow-xs"
+                aria-hidden="true"
+              ></div>
+
+              <!-- Date & Badge above the card -->
+              <PostDateMeta
+                pubDate={post.data.pubDate}
+                updatedDate={post.data.updatedDate}
+                class="mb-3"
+              />
+
+              <!-- Card -->
+              <div class="border-beam-card group relative overflow-hidden rounded-2xl shadow-md ring-1 ring-gray-900/5 dark:ring-white/10 bg-white/85 dark:bg-gray-800/85 backdrop-blur-sm transition hover:shadow-xl">
+                {video ? (
+                  <div class="md:grid md:grid-cols-12 md:items-stretch">
+                    <div class="md:col-span-5 relative overflow-hidden bg-gray-950">
+                      <VideoCardPoster
+                        videoId={video.videoId}
+                        title={video.title}
+                        thumbUrl={video.thumbUrl}
+                        badgeLabel="Video Article"
+                        playButtonSize="md"
+                        aspectClass="aspect-video md:aspect-auto h-full min-h-56"
+                        class="h-full"
+                      />
+                    </div>
+                    <div class="md:col-span-7 relative flex flex-col justify-between p-6 sm:p-7">
+                      <div>
+                        <h3 class="text-xl sm:text-2xl font-semibold tracking-tight text-gray-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                          <a href={`/blog/${post.id}/`}>
+                            <span class="absolute inset-0"></span>
+                            {post.data.title}
+                          </a>
+                        </h3>
+                        <p class="mt-3 text-sm/6 sm:text-base/7 text-gray-600 dark:text-gray-300 line-clamp-3">
+                          {post.data.description}
+                        </p>
+                      </div>
+
+                      <!-- Footer toolbar: tags, reading time, and read link -->
+                      <div class="mt-6 pt-4 border-t border-gray-100 dark:border-gray-700/60 flex flex-wrap items-center justify-between gap-3 text-xs">
+                        <div class="relative z-10">
+                          <TagList tags={post.data.tags} limit={4} />
+                        </div>
+                        <div class="flex items-center gap-3">
+                          <span class="inline-flex items-center gap-1 text-gray-400 dark:text-gray-500 shrink-0">
+                            <svg class="size-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                              <circle cx="12" cy="12" r="10" />
+                              <polyline points="12 6 12 12 16 14" />
+                            </svg>
+                            {getReadingTime(post.body)}
+                          </span>
+                          <span class="text-sm font-semibold text-amber-600 dark:text-amber-500 group-hover:text-amber-500 dark:group-hover:text-amber-400 inline-flex items-center gap-1">
+                            <span>Read</span>
+                            <span aria-hidden="true">&rarr;</span>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div class="p-6 sm:p-8">
+                    <div>
+                      <h3 class="text-xl sm:text-2xl font-semibold tracking-tight text-gray-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                        <a href={`/blog/${post.id}/`}>
+                          <span class="absolute inset-0"></span>
+                          {post.data.title}
+                        </a>
+                      </h3>
+                      <p class="mt-3 text-base/7 text-gray-600 dark:text-gray-300">
+                        {post.data.description}
+                      </p>
+                    </div>
+
+                    <!-- Footer toolbar: tags, reading time, and read link -->
+                    <div class="mt-6 pt-4 border-t border-gray-100 dark:border-gray-700/60 flex flex-wrap items-center justify-between gap-3 text-xs">
+                      <div class="relative z-10">
+                        <TagList tags={post.data.tags} limit={4} />
+                      </div>
+                      <div class="flex items-center gap-3">
+                        <span class="inline-flex items-center gap-1 text-gray-400 dark:text-gray-500 shrink-0">
+                          <svg class="size-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                            <circle cx="12" cy="12" r="10" />
+                            <polyline points="12 6 12 12 16 14" />
+                          </svg>
+                          {getReadingTime(post.body)}
+                        </span>
+                        <span class="text-sm font-semibold text-amber-600 dark:text-amber-500 group-hover:text-amber-500 dark:group-hover:text-amber-400 inline-flex items-center gap-1">
+                          <span>Read</span>
+                          <span aria-hidden="true">&rarr;</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <!-- Author attribution -->
+              <AuthorChip author={post.data.author} class="mt-4" />
+            </article>
+            );
+          })}
+        </div>
+
+        <PaginationControls
+          currentPage={currentPage}
+          totalItems={olderPosts.length}
+          pageSize={OLDER_BLOGS_PAGE_SIZE}
+          basePath="/blog"
+          firstPageHash="#older-posts"
+          itemLabel="articles"
+          ariaLabel="Older blog posts pagination"
+          class="mt-12"
+        />
+      </div>
+    </div>
+  </div>
+
+  {isInitialView && (
+    <script>
+    function setupFeaturedCardFitter() {
+      const container = document.getElementById('featured-preview-container');
+      const rightCol = document.getElementById('blog-right-col');
+      const leftArticle = document.getElementById('featured-article');
+      if (!rightCol || !leftArticle) return;
+
+      const leftCard = leftArticle.querySelector<HTMLElement>('.border-beam-card');
+      if (!leftCard) return;
+
+      const desc = leftCard.querySelector<HTMLElement>('#featured-desc');
+      const paras = container
+        ? Array.from(container.querySelectorAll<HTMLElement>('[data-preview-idx]'))
+        : [];
+
+      function fitFeaturedCard() {
+        const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
+
+        if (!isDesktop) {
+          leftCard.style.height = '';
+          rightCol.style.minHeight = '';
+          if (desc) {
+            desc.style.display = '';
+            desc.style.webkitLineClamp = '';
+            desc.style.overflow = '';
+            desc.style.webkitBoxOrient = '';
+          }
+          if (container) {
+            container.style.display = '';
+            paras.forEach((p, idx) => {
+              p.style.display = idx > 0 ? 'none' : '';
+              p.style.webkitLineClamp = idx === 0 ? '2' : '';
+              p.style.webkitBoxOrient = idx === 0 ? 'vertical' : '';
+              p.style.overflow = idx === 0 ? 'hidden' : '';
+            });
+          }
+          return;
+        }
+
+        // Reset right column minHeight first to measure its natural height
+        rightCol.style.minHeight = '';
+
+        const leftDate = leftArticle?.firstElementChild as HTMLElement | null;
+        const leftAuthor = leftArticle?.lastElementChild as HTMLElement | null;
+        const footer = document.getElementById('featured-footer');
+        const poster = leftCard.querySelector<HTMLElement>('.youtube-poster-embed');
+        const title = leftCard.querySelector<HTMLElement>('h2');
+
+        // Reset desc styling first to measure its natural height
+        if (desc) {
+          desc.style.display = 'block';
+          desc.style.webkitLineClamp = 'none';
+          desc.style.overflow = '';
+          desc.style.webkitBoxOrient = '';
+        }
+
+        const rightHeight = rightCol?.offsetHeight ?? 0;
+        const leftDateHeight = leftDate ? leftDate.offsetHeight : 0;
+        const leftAuthorHeight = leftAuthor ? leftAuthor.offsetHeight : 0;
+        const leftChromeHeight = leftDateHeight + 12 + leftAuthorHeight + 24;
+
+        const posterHeight = poster ? poster.offsetHeight : 0;
+        const titleHeight = title ? title.offsetHeight : 0;
+        const footerHeight = footer ? footer.offsetHeight : 0;
+        const descHeight = desc ? desc.offsetHeight : 0;
+        const cardPaddingY = 48; // p-6 top (24px) + bottom (24px)
+        const titleMarginBottom = 16; // mt-4
+        const footerMarginTop = 24; // mt-6
+
+        // Minimum height needed by the left card (especially when left card has a video poster)
+        const minLeftCardHeight =
+          posterHeight +
+          cardPaddingY +
+          titleHeight +
+          (descHeight > 0 ? titleMarginBottom + descHeight : 0) +
+          footerMarginTop +
+          footerHeight;
+
+        const rightBasedCardHeight = rightHeight - leftChromeHeight;
+        const targetCardHeight = Math.max(rightBasedCardHeight, minLeftCardHeight);
+
+        leftCard.style.height = `${targetCardHeight}px`;
+
+        // If the left card (e.g. with a video poster) is taller than the right column, stretch the right column to match
+        if (minLeftCardHeight > rightBasedCardHeight) {
+          rightCol.style.minHeight = `${targetCardHeight + leftChromeHeight}px`;
+        }
+
+        const availableTextHeight =
+          targetCardHeight -
+          posterHeight -
+          cardPaddingY -
+          titleHeight -
+          titleMarginBottom -
+          footerMarginTop -
+          footerHeight;
+
+        const descLineHeight = 28; // text-base/7
+        const paraLineHeight = 24; // text-sm/6
+        const previewBorderAndGap = 33; // mt-4 (16px) + pt-4 (16px) + 1px border
+
+        if (availableTextHeight <= 0) {
+          if (desc) desc.style.display = 'none';
+          if (container) container.style.display = 'none';
+          return;
+        }
+
+        if (descHeight <= availableTextHeight) {
+          // Description fits completely
+          if (desc) desc.style.display = 'block';
+          const remainingForPreview = availableTextHeight - descHeight - previewBorderAndGap;
+
+          if (container && paras.length > 0 && remainingForPreview >= paraLineHeight * 1.5) {
+            container.style.display = '';
+            paras.forEach((p) => {
+              p.style.display = 'none';
+              p.style.webkitLineClamp = '';
+              p.style.overflow = '';
+              p.style.webkitBoxOrient = '';
+            });
+
+            let usedHeight = 0;
+            const paraGap = 12;
+            let lastVisibleIdx = -1;
+            let lastVisibleLines = 0;
+
+            for (let i = 0; i < paras.length; i++) {
+              const p = paras[i];
+              p.style.display = 'block';
+              p.style.webkitLineClamp = 'none';
+              const naturalHeight = p.offsetHeight;
+              const gap = i > 0 ? paraGap : 0;
+              const remaining = remainingForPreview - usedHeight - gap;
+
+              if (naturalHeight <= remaining) {
+                usedHeight += naturalHeight + gap;
+                lastVisibleIdx = i;
+                lastVisibleLines = Math.round(naturalHeight / paraLineHeight);
+              } else {
+                const linesFit = Math.floor(remaining / paraLineHeight);
+                if (linesFit >= 1) {
+                  p.style.display = '-webkit-box';
+                  p.style.webkitBoxOrient = 'vertical';
+                  p.style.webkitLineClamp = String(linesFit);
+                  p.style.overflow = 'hidden';
+                  lastVisibleIdx = i;
+                  lastVisibleLines = linesFit;
+                } else {
+                  p.style.display = 'none';
+                }
+                for (let j = i + 1; j < paras.length; j++) {
+                  paras[j].style.display = 'none';
+                }
+                break;
+              }
+            }
+
+            // Guard against subpixel / flex-1 overflow pushing leftCard taller than targetCardHeight
+            while (leftCard.offsetHeight > targetCardHeight && lastVisibleIdx >= 0) {
+              const p = paras[lastVisibleIdx];
+              if (lastVisibleLines > 1) {
+                lastVisibleLines -= 1;
+                p.style.display = '-webkit-box';
+                p.style.webkitBoxOrient = 'vertical';
+                p.style.webkitLineClamp = String(lastVisibleLines);
+                p.style.overflow = 'hidden';
+              } else {
+                p.style.display = 'none';
+                lastVisibleIdx -= 1;
+                if (lastVisibleIdx >= 0) {
+                  lastVisibleLines = Math.max(
+                    1,
+                    Math.round(paras[lastVisibleIdx].offsetHeight / paraLineHeight)
+                  );
+                } else {
+                  container.style.display = 'none';
+                }
+              }
+            }
+          } else if (container) {
+            container.style.display = 'none';
+          }
+        } else {
+          // Description itself needs truncation
+          if (container) container.style.display = 'none';
+          if (desc) {
+            const descLinesFit = Math.max(1, Math.floor(availableTextHeight / descLineHeight));
+            desc.style.display = '-webkit-box';
+            desc.style.webkitBoxOrient = 'vertical';
+            desc.style.webkitLineClamp = String(descLinesFit);
+            desc.style.overflow = 'hidden';
+          }
+        }
+      }
+
+      let isFitting = false;
+      function scheduleFit() {
+        if (isFitting) return;
+        isFitting = true;
+        fitFeaturedCard();
+        isFitting = false;
+      }
+
+      scheduleFit();
+      window.addEventListener('resize', scheduleFit, { passive: true });
+
+      if (typeof ResizeObserver !== 'undefined') {
+        const ro = new ResizeObserver(() => scheduleFit());
+        ro.observe(rightCol);
+        const leftPoster = leftCard.querySelector<HTMLElement>('.youtube-poster-embed');
+        if (leftPoster) ro.observe(leftPoster);
+      }
+    }
+
+      setupFeaturedCardFitter();
+      document.addEventListener('astro:page-load', setupFeaturedCardFitter);
+    </script>
+  )}
+  <script>
+    import '../../scripts/youtube-embed';
+  </script>
+</BaseLayout>

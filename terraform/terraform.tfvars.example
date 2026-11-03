@@ -1,0 +1,21 @@
+# The only required variable is `environment_domain` (must exist as a public Route 53 Hosted Zone).
+# Both `example.com` and `www.example.com` are configured with SSL & Route 53 A/AAAA records,
+# and the naked domain (`example.com`) automatically 301-redirects to `https://www.example.com`.
+environment_domain = "example.com"
+
+# Optional overrides (auto-computed if omitted):
+# environment_domain_slug = "example-com"
+# account_id              = "111111111111"
+# cloudfront_aliases      = ["www.example.com", "example.com"]
+# cloudfront_price_class  = "PriceClass_200"
+
+# Optional custom subset of MRAP regions (or comment/uncomment directly in variables.tf):
+# buckets = [
+#   { region = "ap-northeast-1", is_main = true },  # Asia Pacific (Tokyo) - Primary
+#   { region = "eu-north-1",     is_main = false }, # Europe (Stockholm)
+#   { region = "eu-west-1",      is_main = false }, # Europe (Ireland)
+#   { region = "us-west-2",      is_main = false }, # US West (Oregon)
+#   { region = "us-east-1",      is_main = false }, # US East (N. Virginia)
+#   { region = "ap-south-1",     is_main = false }, # Asia Pacific (Mumbai)
+# ]
+

@@ -1,0 +1,780 @@
+---
+import ThemeToggle from './ThemeToggle.astro';
+import { getNavLinks } from '../utils/navigation';
+
+export interface SectionItem {
+  id: string;
+  label: string;
+}
+
+interface Props {
+  sections?: SectionItem[];
+  ariaLabel?: string;
+}
+
+const { sections = [], ariaLabel = "Page sections" } = Astro.props;
+const hasSections = sections.length > 0;
+const totalLabelChars = sections.reduce((sum, sec) => sum + sec.label.length, 0);
+// Use compact dropdown mode on desktop when there are many sections or long article headings
+const useCompactSections = sections.length > 5 || totalLabelChars > 65;
+const siteNavLinks = getNavLinks(Astro.url.pathname);
+---
+
+<!-- 1. Inline Breadcrumb Right-Aligned Navigation (Visible at Top on desktop when sections exist; hidden on mobile) -->
+{hasSections && useCompactSections && (
+  <div class="hidden sm:block relative ml-auto shrink-0" data-nav-inline>
+    <button
+      type="button"
+      data-section-dropdown-trigger="inline"
+      aria-expanded="false"
+      aria-haspopup="true"
+      aria-label="Toggle section navigation menu"
+      class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-900 dark:bg-amber-950/70 dark:text-amber-300 ring-1 ring-amber-500/25 hover:ring-amber-500/50 transition-all cursor-pointer max-w-[280px]"
+    >
+      <span data-section-active-label class="truncate">{sections[0]?.label || 'Sections'}</span>
+      <span data-section-active-count class="text-[10px] font-mono opacity-75 shrink-0">1/{sections.length}</span>
+      <svg class="size-3.5 text-amber-700/70 dark:text-amber-300/70 shrink-0 transition-transform duration-200" data-section-dropdown-arrow viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+      </svg>
+    </button>
+
+    <div
+      data-section-dropdown-menu="inline"
+      class="hidden absolute right-0 top-full mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-2xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-md p-1.5 shadow-xl ring-1 ring-gray-900/10 dark:ring-white/15 transition-all z-50 max-h-[70vh] overflow-y-auto"
+    >
+      <div class="px-2.5 py-1 text-[10px] font-mono font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+        Jump to section ({sections.length})
+      </div>
+      {sections.map((sec, idx) => (
+        <a
+          href={`#${sec.id}`}
+          data-section-item={sec.id}
+          class:list={[
+            'flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl text-xs font-medium transition-colors',
+            idx === 0
+              ? 'bg-amber-100 text-amber-900 dark:bg-amber-950/70 dark:text-amber-300 font-semibold'
+              : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800',
+          ]}
+        >
+          <span class="line-clamp-2 pr-1">{sec.label}</span>
+          <span data-active-dot class:list={['size-1.5 rounded-full bg-amber-500 shrink-0', idx === 0 ? 'inline-block' : 'hidden']}></span>
+        </a>
+      ))}
+    </div>
+  </div>
+)}
+
+{hasSections && !useCompactSections && (
+  <nav
+    data-nav-inline
+    aria-label={ariaLabel}
+    class="hidden sm:flex items-center gap-1 sm:gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-0.5 sm:py-0 min-w-0 max-w-full ml-auto justify-start"
+  >
+    {sections.map((sec, idx) => (
+      <a
+        href={`#${sec.id}`}
+        data-section={sec.id}
+        title={sec.label}
+        class:list={[
+          'inline-flex items-center shrink-0 px-2 sm:px-2.5 py-1 rounded-full text-xs transition-all whitespace-nowrap max-w-[220px] truncate',
+          idx === 0
+            ? 'bg-amber-100 text-amber-900 dark:bg-amber-950/70 dark:text-amber-300 ring-1 ring-amber-500/20 font-semibold'
+            : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 font-medium',
+        ]}
+      >
+        <span class="truncate">{sec.label}</span>
+      </a>
+    ))}
+  </nav>
+)}
+
+<!-- 2. Popped-out Floating Pill (Pops out when scrolling down: top on mobile, bottom on desktop) -->
+<div
+  data-nav-floating-wrapper
+  class="fixed top-3 sm:top-auto sm:bottom-6 inset-x-0 z-40 pointer-events-none transition-all duration-300 ease-out opacity-0 invisible -translate-y-3 sm:translate-y-4 scale-95"
+  aria-hidden="true"
+>
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex justify-end min-w-0">
+    {hasSections && (
+      <nav
+        data-nav-floating
+        aria-label={`Floating ${ariaLabel}`}
+        class="hidden sm:flex pointer-events-auto items-center gap-1 sm:gap-1.5 p-1.5 rounded-full bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-lg shadow-gray-900/5 dark:shadow-black/30 ring-1 ring-gray-900/10 dark:ring-white/15 transition-all max-w-full min-w-0 relative"
+      >
+        {useCompactSections && (
+          <button
+            type="button"
+            data-section-dropdown-trigger="desktop"
+            aria-expanded="false"
+            aria-haspopup="true"
+            aria-label="Toggle section navigation menu"
+            class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-900 dark:bg-amber-950/70 dark:text-amber-300 ring-1 ring-amber-500/30 hover:ring-amber-500/50 transition-all cursor-pointer max-w-[260px] shrink-0"
+          >
+            <span data-section-active-label class="truncate">{sections[0]?.label || 'Sections'}</span>
+            <span data-section-active-count class="text-[10px] font-mono opacity-75 shrink-0">1/{sections.length}</span>
+            <svg class="size-3.5 text-amber-700/70 dark:text-amber-300/70 shrink-0 transition-transform duration-200" data-section-dropdown-arrow viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+            </svg>
+          </button>
+        )}
+        {!useCompactSections && (
+          <div class="flex items-center gap-1 sm:gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-0.5 min-w-0 flex-1">
+            {sections.map((sec, idx) => (
+              <a
+                href={`#${sec.id}`}
+                data-section={sec.id}
+                title={sec.label}
+                class:list={[
+                  'inline-flex items-center shrink-0 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap max-w-[220px] truncate',
+                  idx === 0
+                    ? 'bg-amber-100 text-amber-900 dark:bg-amber-950/70 dark:text-amber-300 ring-1 ring-amber-500/30 font-semibold shadow-2xs'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-gray-800/80',
+                ]}
+              >
+                <span class="truncate">{sec.label}</span>
+              </a>
+            ))}
+          </div>
+        )}
+
+        <span class="w-px h-3.5 bg-gray-200 dark:bg-gray-700/80 mx-0.5 shrink-0" aria-hidden="true"></span>
+
+        <div class="flex items-center gap-1 shrink-0">
+          <button
+            type="button"
+            data-site-trigger
+            aria-expanded="false"
+            aria-haspopup="true"
+            aria-label="Toggle site navigation menu"
+            title="Site menu"
+            class="inline-flex items-center justify-center size-6 sm:size-7 rounded-full text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors shrink-0 cursor-pointer"
+          >
+            <svg class="size-3.5" data-site-bars viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+              <line x1="4" y1="6" x2="20" y2="6" />
+              <line x1="4" y1="12" x2="20" y2="12" />
+              <line x1="4" y1="18" x2="20" y2="18" />
+            </svg>
+            <svg class="size-3.5 hidden" data-site-close viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+              <line x1="6" y1="6" x2="18" y2="18" />
+              <line x1="18" y1="6" x2="6" y2="18" />
+            </svg>
+          </button>
+
+          <ThemeToggle
+            id="floating-theme-toggle-desktop"
+            variant="pill"
+            class="shrink-0"
+          />
+
+          <a
+            href="#top"
+            data-top-button
+            class="inline-flex items-center justify-center size-6 sm:size-7 rounded-full text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors shrink-0"
+            title="Back to top"
+            aria-label="Back to top"
+          >
+            <svg class="size-3 sm:size-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M10 17a.75.75 0 01-.75-.75V5.56l-3.22 3.22a.75.75 0 11-1.06-1.06l4.5-4.5a.75.75 0 011.06 0l4.5 4.5a.75.75 0 01-1.06 1.06L10.75 5.56V16.25A.75.75 0 0110 17z" clip-rule="evenodd" />
+            </svg>
+          </a>
+        </div>
+
+        {useCompactSections && (
+          <div
+            data-section-dropdown-menu="desktop"
+            class="hidden absolute right-0 bottom-full mb-2 w-80 max-w-[calc(100vw-2rem)] rounded-2xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-md p-1.5 shadow-xl ring-1 ring-gray-900/10 dark:ring-white/15 transition-all z-50 max-h-[70vh] overflow-y-auto"
+          >
+            <div class="px-2.5 py-1 text-[10px] font-mono font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+              Jump to section ({sections.length})
+            </div>
+            {sections.map((sec, idx) => (
+              <a
+                href={`#${sec.id}`}
+                data-section-item={sec.id}
+                class:list={[
+                  'flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl text-xs font-medium transition-colors',
+                  idx === 0
+                    ? 'bg-amber-100 text-amber-900 dark:bg-amber-950/70 dark:text-amber-300 font-semibold'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800',
+                ]}
+              >
+                <span class="line-clamp-2 pr-1">{sec.label}</span>
+                <span data-active-dot class:list={['size-1.5 rounded-full bg-amber-500 shrink-0', idx === 0 ? 'inline-block' : 'hidden']}></span>
+              </a>
+            ))}
+          </div>
+        )}
+
+        <div
+          data-site-menu
+          class="hidden absolute right-0 bottom-full mb-2 w-48 max-w-[calc(100vw-2rem)] rounded-2xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-md p-1.5 shadow-xl ring-1 ring-gray-900/10 dark:ring-white/15 transition-all z-50 max-h-[70vh] overflow-y-auto"
+        >
+          <div class="px-2.5 py-1 text-[10px] font-mono font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+            Site Navigation
+          </div>
+          {siteNavLinks.map((item) => (
+            <a
+              href={item.href}
+              data-site-item
+              class:list={[
+                'flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-medium transition-colors',
+                item.active
+                  ? 'bg-amber-100 text-amber-900 dark:bg-amber-950/70 dark:text-amber-300 font-semibold'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800',
+              ]}
+            >
+              <span>{item.label}</span>
+              {item.active && <span class="size-1.5 rounded-full bg-amber-500 shrink-0"></span>}
+            </a>
+          ))}
+        </div>
+      </nav>
+    )}
+
+    {hasSections && (
+      <div class="sm:hidden relative pointer-events-auto flex items-center gap-1 p-1 rounded-full bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-lg shadow-gray-900/5 dark:shadow-black/30 ring-1 ring-gray-900/10 dark:ring-white/15">
+        <button
+          type="button"
+          data-section-dropdown-trigger="mobile"
+          data-mobile-trigger
+          aria-expanded="false"
+          aria-haspopup="true"
+          aria-label="Toggle section navigation menu"
+          class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-gray-800 dark:text-gray-200 hover:text-amber-600 dark:hover:text-amber-400 transition-colors max-w-[170px]"
+        >
+          <span data-section-active-label data-mobile-label class="max-w-[110px] truncate">{sections[0]?.label || 'Sections'}</span>
+          <svg class="size-3 text-gray-400 transition-transform duration-200" data-section-dropdown-arrow data-mobile-arrow viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+          </svg>
+        </button>
+
+        <span class="w-px h-3.5 bg-gray-200 dark:bg-gray-700/80 mx-0.5 shrink-0" aria-hidden="true"></span>
+
+        <button
+          type="button"
+          data-site-trigger
+          aria-expanded="false"
+          aria-haspopup="true"
+          aria-label="Toggle site navigation menu"
+          title="Site menu"
+          class="inline-flex items-center justify-center size-6 rounded-full text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors shrink-0 cursor-pointer"
+        >
+          <svg class="size-3.5" data-site-bars viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <line x1="4" y1="6" x2="20" y2="6" />
+            <line x1="4" y1="12" x2="20" y2="12" />
+            <line x1="4" y1="18" x2="20" y2="18" />
+          </svg>
+          <svg class="size-3.5 hidden" data-site-close viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <line x1="6" y1="6" x2="18" y2="18" />
+            <line x1="18" y1="6" x2="6" y2="18" />
+          </svg>
+        </button>
+
+        <span class="w-px h-3.5 bg-gray-200 dark:bg-gray-700/80 mx-0.5 shrink-0" aria-hidden="true"></span>
+
+        <ThemeToggle
+          id="floating-theme-toggle-mobile"
+          variant="pill"
+          class="size-6 shrink-0"
+          iconClass="size-3.5"
+        />
+
+        <span class="w-px h-3.5 bg-gray-200 dark:bg-gray-700/80 mx-0.5 shrink-0" aria-hidden="true"></span>
+
+        <a
+          href="#top"
+          data-top-button
+          class="inline-flex items-center justify-center size-6 rounded-full text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors shrink-0"
+          title="Back to top"
+          aria-label="Back to top"
+        >
+          <svg class="size-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path fill-rule="evenodd" d="M10 17a.75.75 0 01-.75-.75V5.56l-3.22 3.22a.75.75 0 11-1.06-1.06l4.5-4.5a.75.75 0 011.06 0l4.5 4.5a.75.75 0 01-1.06 1.06L10.75 5.56V16.25A.75.75 0 0110 17z" clip-rule="evenodd" />
+          </svg>
+        </a>
+
+        <div
+          data-section-dropdown-menu="mobile"
+          data-mobile-menu
+          class="hidden absolute right-0 top-full mt-2 w-60 max-w-[calc(100vw-2rem)] rounded-2xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-md p-1.5 shadow-xl ring-1 ring-gray-900/10 dark:ring-white/15 transition-all z-50 max-h-[70vh] overflow-y-auto"
+        >
+          <div class="px-2.5 py-1 text-[10px] font-mono font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+            Jump to section
+          </div>
+          {sections.map((sec, idx) => (
+            <a
+              href={`#${sec.id}`}
+              data-section-item={sec.id}
+              data-mobile-item={sec.id}
+              class:list={[
+                'flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-medium transition-colors',
+                idx === 0
+                  ? 'bg-amber-100 text-amber-900 dark:bg-amber-950/70 dark:text-amber-300 font-semibold'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800',
+              ]}
+            >
+              <span class="truncate pr-2">{sec.label}</span>
+              <span data-active-dot class:list={['size-1.5 rounded-full bg-amber-500 shrink-0', idx === 0 ? 'inline-block' : 'hidden']}></span>
+            </a>
+          ))}
+        </div>
+
+        <div
+          data-site-menu
+          class="hidden absolute right-0 top-full mt-2 w-48 max-w-[calc(100vw-2rem)] rounded-2xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-md p-1.5 shadow-xl ring-1 ring-gray-900/10 dark:ring-white/15 transition-all z-50 max-h-[70vh] overflow-y-auto"
+        >
+          <div class="px-2.5 py-1 text-[10px] font-mono font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+            Site Navigation
+          </div>
+          {siteNavLinks.map((item) => (
+            <a
+              href={item.href}
+              data-site-item
+              class:list={[
+                'flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-medium transition-colors',
+                item.active
+                  ? 'bg-amber-100 text-amber-900 dark:bg-amber-950/70 dark:text-amber-300 font-semibold'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800',
+              ]}
+            >
+              <span>{item.label}</span>
+              {item.active && <span class="size-1.5 rounded-full bg-amber-500 shrink-0"></span>}
+            </a>
+          ))}
+        </div>
+      </div>
+    )}
+
+    {!hasSections && (
+      <div class="pointer-events-auto inline-flex items-center gap-1 p-1 sm:p-1.5 rounded-full bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-lg shadow-gray-900/5 dark:shadow-black/30 ring-1 ring-gray-900/10 dark:ring-white/15 transition-all relative">
+        <button
+          type="button"
+          data-site-trigger
+          aria-expanded="false"
+          aria-haspopup="true"
+          aria-label="Toggle site navigation menu"
+          title="Site menu"
+          class="inline-flex items-center justify-center size-6 sm:size-7 rounded-full text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors shrink-0 cursor-pointer"
+        >
+          <svg class="size-3.5" data-site-bars viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <line x1="4" y1="6" x2="20" y2="6" />
+            <line x1="4" y1="12" x2="20" y2="12" />
+            <line x1="4" y1="18" x2="20" y2="18" />
+          </svg>
+          <svg class="size-3.5 hidden" data-site-close viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <line x1="6" y1="6" x2="18" y2="18" />
+            <line x1="18" y1="6" x2="6" y2="18" />
+          </svg>
+        </button>
+
+        <span class="w-px h-3.5 bg-gray-200 dark:bg-gray-700/80 mx-0.5 shrink-0" aria-hidden="true"></span>
+
+        <ThemeToggle
+          id="floating-theme-toggle-standalone"
+          variant="pill"
+          class="size-6 sm:size-7 shrink-0"
+        />
+
+        <span class="w-px h-3.5 bg-gray-200 dark:bg-gray-700/80 mx-0.5 shrink-0" aria-hidden="true"></span>
+
+        <a
+          href="#top"
+          data-top-button
+          class="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full text-xs font-semibold text-gray-700 dark:text-gray-300 hover:text-amber-600 dark:hover:text-amber-400 transition-colors shrink-0"
+          title="Back to top"
+          aria-label="Back to top"
+        >
+          <span>Top</span>
+          <svg class="size-3 sm:size-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path fill-rule="evenodd" d="M10 17a.75.75 0 01-.75-.75V5.56l-3.22 3.22a.75.75 0 11-1.06-1.06l4.5-4.5a.75.75 0 011.06 0l4.5 4.5a.75.75 0 01-1.06 1.06L10.75 5.56V16.25A.75.75 0 0110 17z" clip-rule="evenodd" />
+          </svg>
+        </a>
+
+        <div
+          data-site-menu
+          class="hidden absolute right-0 top-full mt-2 sm:top-auto sm:bottom-full sm:mb-2 sm:mt-0 w-48 max-w-[calc(100vw-2rem)] rounded-2xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-md p-1.5 shadow-xl ring-1 ring-gray-900/10 dark:ring-white/15 transition-all z-50 max-h-[70vh] overflow-y-auto"
+        >
+          <div class="px-2.5 py-1 text-[10px] font-mono font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+            Navigation
+          </div>
+          {siteNavLinks.map((item) => (
+            <a
+              href={item.href}
+              data-site-item
+              class:list={[
+                'flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-medium transition-colors',
+                item.active
+                  ? 'bg-amber-100 text-amber-900 dark:bg-amber-950/70 dark:text-amber-300 font-semibold'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800',
+              ]}
+            >
+              <span>{item.label}</span>
+              {item.active && <span class="size-1.5 rounded-full bg-amber-500 shrink-0"></span>}
+            </a>
+          ))}
+        </div>
+      </div>
+    )}
+  </div>
+</div>
+
+<script>
+  function initSectionNav() {
+    const floatingWrapper = document.querySelector<HTMLElement>('[data-nav-floating-wrapper]');
+    if (!floatingWrapper) return;
+
+    // Move floating wrapper to body to avoid backdrop-filter containing block bugs
+    if (floatingWrapper.parentElement !== document.body) {
+      document.body.appendChild(floatingWrapper);
+    }
+
+    const allLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-nav-inline] a[data-section], [data-nav-floating] a[data-section]'));
+    const dropdownItems = Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-section-item]'));
+    const sectionIds = Array.from(
+      new Set([
+        ...allLinks.map((l) => l.getAttribute('data-section')),
+        ...dropdownItems.map((l) => l.getAttribute('data-section-item')),
+      ].filter(Boolean))
+    ) as string[];
+    const sections = sectionIds.map((id) => document.getElementById(id)).filter(Boolean) as HTMLElement[];
+
+    const sectionDropdownTriggers = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-section-dropdown-trigger]'));
+    const sectionDropdownMenus = Array.from(document.querySelectorAll<HTMLElement>('[data-section-dropdown-menu]'));
+    const activeLabels = Array.from(document.querySelectorAll<HTMLElement>('[data-section-active-label]'));
+    const activeCounts = Array.from(document.querySelectorAll<HTMLElement>('[data-section-active-count]'));
+
+    const siteTriggers = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-site-trigger]'));
+    const siteMenus = Array.from(document.querySelectorAll<HTMLElement>('[data-site-menu]'));
+
+    function toggleSectionDropdown(scope?: string, open?: boolean) {
+      if (scope) {
+        const trigger = sectionDropdownTriggers.find((t) => t.getAttribute('data-section-dropdown-trigger') === scope);
+        const menu = sectionDropdownMenus.find((m) => m.getAttribute('data-section-dropdown-menu') === scope);
+        if (!trigger || !menu) return;
+
+        const isCurrentlyOpen = !menu.classList.contains('hidden');
+        const shouldOpen = open !== undefined ? open : !isCurrentlyOpen;
+
+        if (shouldOpen) {
+          toggleSiteMenu(undefined, false);
+          // Close other section dropdowns
+          sectionDropdownMenus.forEach((m) => {
+            if (m !== menu) m.classList.add('hidden');
+          });
+          sectionDropdownTriggers.forEach((t) => {
+            if (t !== trigger) {
+              t.setAttribute('aria-expanded', 'false');
+              t.querySelector('[data-section-dropdown-arrow]')?.classList.remove('rotate-180');
+            }
+          });
+          menu.classList.remove('hidden');
+          trigger.setAttribute('aria-expanded', 'true');
+          trigger.querySelector('[data-section-dropdown-arrow]')?.classList.add('rotate-180');
+        } else {
+          menu.classList.add('hidden');
+          trigger.setAttribute('aria-expanded', 'false');
+          trigger.querySelector('[data-section-dropdown-arrow]')?.classList.remove('rotate-180');
+        }
+      } else {
+        const shouldOpen = open !== undefined ? open : false;
+        sectionDropdownMenus.forEach((menu) => menu.classList.toggle('hidden', !shouldOpen));
+        sectionDropdownTriggers.forEach((trigger) => {
+          trigger.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+          trigger.querySelector('[data-section-dropdown-arrow]')?.classList.toggle('rotate-180', shouldOpen);
+        });
+      }
+    }
+
+    function toggleSiteMenu(triggerBtn?: HTMLButtonElement, open?: boolean) {
+      if (triggerBtn) {
+        const parent = triggerBtn.closest('.relative');
+        const targetMenu = parent?.querySelector<HTMLElement>('[data-site-menu]');
+        if (!targetMenu) return;
+
+        const isCurrentlyOpen = !targetMenu.classList.contains('hidden');
+        const shouldOpen = open !== undefined ? open : !isCurrentlyOpen;
+
+        if (shouldOpen) {
+          toggleSectionDropdown(undefined, false);
+          siteMenus.forEach((menu) => {
+            if (menu !== targetMenu) menu.classList.add('hidden');
+          });
+          siteTriggers.forEach((trigger) => {
+            if (trigger !== triggerBtn) {
+              trigger.setAttribute('aria-expanded', 'false');
+              trigger.querySelector('[data-site-bars]')?.classList.remove('hidden');
+              trigger.querySelector('[data-site-close]')?.classList.add('hidden');
+            }
+          });
+
+          targetMenu.classList.remove('hidden');
+          triggerBtn.setAttribute('aria-expanded', 'true');
+          triggerBtn.querySelector('[data-site-bars]')?.classList.add('hidden');
+          triggerBtn.querySelector('[data-site-close]')?.classList.remove('hidden');
+        } else {
+          targetMenu.classList.add('hidden');
+          triggerBtn.setAttribute('aria-expanded', 'false');
+          triggerBtn.querySelector('[data-site-bars]')?.classList.remove('hidden');
+          triggerBtn.querySelector('[data-site-close]')?.classList.add('hidden');
+        }
+      } else {
+        const shouldOpen = open !== undefined ? open : false;
+        siteMenus.forEach((menu) => {
+          menu.classList.toggle('hidden', !shouldOpen);
+        });
+        siteTriggers.forEach((trigger) => {
+          trigger.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+          trigger.querySelector('[data-site-bars]')?.classList.toggle('hidden', shouldOpen);
+          trigger.querySelector('[data-site-close]')?.classList.toggle('hidden', !shouldOpen);
+        });
+      }
+    }
+
+    siteTriggers.forEach((trigger) => {
+      trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleSiteMenu(trigger);
+      });
+    });
+
+    siteMenus.forEach((menu) => {
+      menu.querySelectorAll('a').forEach((link) => {
+        link.addEventListener('click', () => {
+          toggleSiteMenu(undefined, false);
+        });
+      });
+    });
+
+    sectionDropdownTriggers.forEach((trigger) => {
+      trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const scope = trigger.getAttribute('data-section-dropdown-trigger') || undefined;
+        toggleSectionDropdown(scope);
+      });
+    });
+
+    // Close on section dropdown item click
+    dropdownItems.forEach((item) => {
+      item.addEventListener('click', () => {
+        toggleSectionDropdown(undefined, false);
+        const targetId = item.getAttribute('data-section-item');
+        if (targetId) {
+          isClickScrolling = true;
+          if (clickTimer) clearTimeout(clickTimer);
+          setActivePill(targetId);
+          clickTimer = setTimeout(() => {
+            isClickScrolling = false;
+            updateNav();
+          }, 1200);
+        }
+      });
+    });
+
+    // Close when clicking outside
+    document.addEventListener('click', (e) => {
+      const target = e.target as Node;
+      if (sectionDropdownMenus.some((m) => !m.classList.contains('hidden'))) {
+        const clickedInsideMenu = sectionDropdownMenus.some((m) => m.contains(target));
+        const clickedInsideTrigger = sectionDropdownTriggers.some((t) => t.contains(target));
+        if (!clickedInsideMenu && !clickedInsideTrigger) {
+          toggleSectionDropdown(undefined, false);
+        }
+      }
+      if (siteMenus.some((m) => !m.classList.contains('hidden'))) {
+        const clickedInsideMenu = siteMenus.some((m) => m.contains(target));
+        const clickedInsideTrigger = siteTriggers.some((t) => t.contains(target));
+        if (!clickedInsideMenu && !clickedInsideTrigger) {
+          toggleSiteMenu(undefined, false);
+        }
+      }
+    });
+
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (sectionDropdownMenus.some((m) => !m.classList.contains('hidden'))) {
+          const activeTrigger = sectionDropdownTriggers.find((t) => t.getAttribute('aria-expanded') === 'true');
+          toggleSectionDropdown(undefined, false);
+          activeTrigger?.focus();
+        }
+        if (siteMenus.some((m) => !m.classList.contains('hidden'))) {
+          const activeTrigger = siteTriggers.find((t) => t.getAttribute('aria-expanded') === 'true');
+          toggleSiteMenu(undefined, false);
+          activeTrigger?.focus();
+        }
+      }
+    });
+
+    let ticking = false;
+    let isClickScrolling = false;
+    let clickTimer: ReturnType<typeof setTimeout> | null = null;
+    let isFloating = false;
+
+    function setActivePill(targetId: string | null) {
+      if (!targetId || !sections.length) return;
+
+      // 1. Update Desktop and Inline horizontal pills (if rendered)
+      allLinks.forEach((link) => {
+        const id = link.getAttribute('data-section');
+        const isActive = id === targetId;
+
+        if (isActive) {
+          link.classList.add('bg-amber-100', 'text-amber-900', 'dark:bg-amber-950/70', 'dark:text-amber-300', 'ring-1', 'ring-amber-500/30', 'font-semibold');
+          link.classList.remove('text-gray-500', 'text-gray-600', 'dark:text-gray-400', 'font-medium');
+          link.setAttribute('aria-current', 'true');
+        } else {
+          link.classList.remove('bg-amber-100', 'text-amber-900', 'dark:bg-amber-950/70', 'dark:text-amber-300', 'ring-1', 'ring-amber-500/30', 'font-semibold');
+          link.classList.add('text-gray-600', 'dark:text-gray-400', 'font-medium');
+          link.removeAttribute('aria-current');
+        }
+      });
+
+      // 2. Update Dropdown Trigger Labels, Section Counter (e.g. 2/8), and Dropdown Menu Items
+      const sectionIdx = sectionIds.indexOf(targetId);
+      const matchingDropdownItem = dropdownItems.find((item) => item.getAttribute('data-section-item') === targetId);
+      const matchingHorizontalLink = allLinks.find((l) => l.getAttribute('data-section') === targetId);
+      const labelText = matchingDropdownItem?.textContent?.trim() || matchingHorizontalLink?.textContent?.trim() || targetId;
+
+      activeLabels.forEach((el) => {
+        el.textContent = labelText;
+      });
+      if (sectionIdx !== -1) {
+        activeCounts.forEach((el) => {
+          el.textContent = `${sectionIdx + 1}/${sectionIds.length}`;
+        });
+      }
+
+      dropdownItems.forEach((item) => {
+        const id = item.getAttribute('data-section-item');
+        const isActive = id === targetId;
+        const dot = item.querySelector('[data-active-dot]');
+
+        if (isActive) {
+          item.classList.add('bg-amber-100', 'text-amber-900', 'dark:bg-amber-950/70', 'dark:text-amber-300', 'font-semibold');
+          item.classList.remove('text-gray-700', 'dark:text-gray-300');
+          dot?.classList.remove('hidden');
+          dot?.classList.add('inline-block');
+        } else {
+          item.classList.remove('bg-amber-100', 'text-amber-900', 'dark:bg-amber-950/70', 'dark:text-amber-300', 'font-semibold');
+          item.classList.add('text-gray-700', 'dark:text-gray-300');
+          dot?.classList.add('hidden');
+          dot?.classList.remove('inline-block');
+        }
+      });
+    }
+
+    function updateNav() {
+      const scrollY = window.scrollY;
+
+      // 1. Toggle floating "pop-out" state based on scroll distance past header
+      const shouldFloat = scrollY > 70;
+      if (shouldFloat !== isFloating) {
+        isFloating = shouldFloat;
+        if (isFloating) {
+          floatingWrapper.classList.remove('opacity-0', 'invisible', '-translate-y-3', 'sm:translate-y-4', 'scale-95', 'pointer-events-none');
+          floatingWrapper.classList.add('opacity-100', 'visible', 'translate-y-0', 'scale-100');
+          floatingWrapper.setAttribute('aria-hidden', 'false');
+          // Close inline breadcrumb dropdown when transitioning to floating
+          toggleSectionDropdown('inline', false);
+        } else {
+          floatingWrapper.classList.add('opacity-0', 'invisible', '-translate-y-3', 'sm:translate-y-4', 'scale-95', 'pointer-events-none');
+          floatingWrapper.classList.remove('opacity-100', 'visible', 'translate-y-0', 'scale-100');
+          floatingWrapper.setAttribute('aria-hidden', 'true');
+          floatingWrapper.style.transform = '';
+          floatingWrapper.style.transition = '';
+          toggleSectionDropdown('desktop', false);
+          toggleSectionDropdown('mobile', false);
+          toggleSiteMenu(undefined, false);
+        }
+      }
+
+      // 2. Prevent overlapping the footer bottom on desktop (on mobile, capsule is pinned at top-3)
+      if (isFloating) {
+        const isDesktop = window.innerWidth >= 640;
+        if (isDesktop) {
+          const footerBottom = document.querySelector<HTMLElement>('[data-footer-bottom]') || document.querySelector<HTMLElement>('footer > div > div:last-child');
+          if (footerBottom) {
+            const footerBottomRect = footerBottom.getBoundingClientRect();
+            // The floating wrapper sits 24px from the bottom of the viewport on desktop
+            const defaultBottom = 24;
+            const wrapperBottom = window.innerHeight - defaultBottom;
+            // Maintain a clean 14px clearance above the top of the footer bottom bar
+            const targetLimit = footerBottomRect.top - 14;
+            const lift = wrapperBottom - targetLimit;
+            if (lift > 0) {
+              floatingWrapper.style.transform = `translateY(-${lift}px)`;
+              floatingWrapper.style.transition = 'none'; // Instant follow during scroll to eliminate jitter
+            } else {
+              floatingWrapper.style.transform = '';
+              floatingWrapper.style.transition = ''; // Restore CSS enter/exit transitions
+            }
+          }
+        } else {
+          floatingWrapper.style.transform = '';
+          floatingWrapper.style.transition = '';
+        }
+      }
+
+      // 3. Track active section if sections exist and not in a click-scroll
+      if (!sections.length || isClickScrolling) {
+        ticking = false;
+        return;
+      }
+
+      const threshold = window.innerHeight * 0.4;
+      let currentSectionId = sections[0].id;
+      for (const section of sections) {
+        const rect = section.getBoundingClientRect();
+        if (rect.top <= threshold) {
+          currentSectionId = section.id;
+        }
+      }
+
+      // Near bottom of page: activate last section
+      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 60) {
+        currentSectionId = sections[sections.length - 1].id;
+      }
+
+      setActivePill(currentSectionId);
+      ticking = false;
+    }
+
+    function onScroll() {
+      if (!ticking) {
+        requestAnimationFrame(updateNav);
+        ticking = true;
+      }
+    }
+
+    allLinks.forEach((link) => {
+      link.addEventListener('click', () => {
+        const targetId = link.getAttribute('data-section');
+        if (!targetId) return;
+
+        isClickScrolling = true;
+        if (clickTimer) clearTimeout(clickTimer);
+        setActivePill(targetId);
+
+        clickTimer = setTimeout(() => {
+          isClickScrolling = false;
+          updateNav();
+        }, 1200);
+      });
+    });
+
+    const topButtons = Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-top-button]'));
+    topButtons.forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    });
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
+    updateNav();
+  }
+
+  initSectionNav();
+  document.addEventListener('astro:page-load', initSectionNav);
+</script>

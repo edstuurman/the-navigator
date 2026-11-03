@@ -1,0 +1,31 @@
+---
+import type { ImageMetadata } from 'astro';
+import PhotographyView from '../../../components/pages/PhotographyView.astro';
+import { GALLERY_PAGE_SIZE } from '../../../utils/pagination';
+
+export async function getStaticPaths() {
+  const images = import.meta.glob<{ default: ImageMetadata }>(
+    '/src/images/photography/*.{jpg,jpeg,png,webp}',
+  );
+  const totalPhotos = Object.keys(images).length;
+  const totalPages = Math.ceil(totalPhotos / GALLERY_PAGE_SIZE);
+
+  const paths = [];
+  for (let page = 2; page <= totalPages; page++) {
+    paths.push({
+      params: { page: String(page) },
+      props: { currentPage: page },
+    });
+  }
+  return paths;
+}
+
+interface Props {
+  currentPage: number;
+}
+
+const { currentPage } = Astro.props;
+---
+
+<PhotographyView currentPage={currentPage} />
+

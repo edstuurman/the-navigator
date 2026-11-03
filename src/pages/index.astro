@@ -1,0 +1,607 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import AmbientGlow from '../components/AmbientGlow.astro';
+import SectionNav from '../components/SectionNav.astro';
+import AuthorChip from '../components/AuthorChip.astro';
+import PostDateMeta from '../components/PostDateMeta.astro';
+import { getCollection, getEntry } from 'astro:content';
+import { Image } from 'astro:assets';
+import { siteConfig } from '../site.config';
+import { themeConfig } from '../theme.config';
+import FormattedDate from '../components/FormattedDate.astro';
+import TagList from '../components/TagList.astro';
+import VideoCardPoster from '../components/VideoCardPoster.astro';
+import { getReadingTime } from '../utils/readingTime';
+import { getFirstVideoEmbed } from '../utils/postVideo';
+import { getFirstParagraph } from '../utils/postExcerpt';
+import { getExcerpt } from '../utils/excerpt';
+import { getChangelogEntries } from '../utils/changelog';
+import { pictureLogs, pictureLogsMap, comparePhotoPathsByDateDesc } from '../utils/pictureLogs';
+import { getGalleryPhotoHref } from '../utils/logTimeline';
+
+const carouselCount = themeConfig.pagination.homepageCarouselCount;
+
+const posts = (await getCollection('blog'))
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+
+const featuredBlogPosts = await Promise.all(
+  posts.slice(0, carouselCount).map(async (post) => ({
+    post,
+    video: await getFirstVideoEmbed(post.body),
+    firstParagraph: getFirstParagraph(post.body),
+  }))
+);
+
+const hasVideoInFeatured = featuredBlogPosts.some(({ video }) => Boolean(video));
+
+const rawLogEntries = await getCollection('log');
+const changelogEntries = await getChangelogEntries();
+
+const images = import.meta.glob<{ default: ImageMetadata }>(
+  "../images/photography/*.{jpg,jpeg,png,webp}",
+);
+
+interface HomeLogItem {
+  id: string;
+  kind: 'note' | 'changelog' | 'photo';
+  date: Date;
+  title: string;
+  excerpt: string;
+  tags: string[];
+  filename?: string;
+  photoId?: number;
+  imageData?: ImageMetadata;
+}
+
+const rawCombinedLogEntries: HomeLogItem[] = [
+  ...rawLogEntries.map((e) => ({
+    id: e.id.replace(/\.[^/.]+$/, ''),
+    kind: 'note' as const,
+    date: e.data.date,
+    title: e.data.title,
+    excerpt: getExcerpt(e.body),
+    tags: e.data.tags || [],
+  })),
+  ...changelogEntries.map((c) => ({
+    id: c.id,
+    kind: 'changelog' as const,
+    date: c.date,
+    title: c.title,
+    excerpt: getExcerpt(c.rawMarkdown),
+    tags: c.tags || [],
+  })),
+  ...pictureLogs.map((p) => ({
+    id: `photo-${p.id}`,
+    kind: 'photo' as const,
+    date: p.pubDate,
+    title: p.title,
+    excerpt: getExcerpt(p.story),
+    tags: p.tags || [],
+    filename: p.filename,
+    photoId: p.id,
+  })),
+]
+  .sort((a, b) => b.date.valueOf() - a.date.valueOf())
+  .slice(0, carouselCount);
+
+const logEntries: HomeLogItem[] = await Promise.all(
+  rawCombinedLogEntries.map(async (item) => {
+    if (item.kind === 'photo' && item.filename) {
+      const importer = images[`../images/photography/${item.filename}`];
+      if (importer) {
+        const { default: imageData } = await importer();
+        return { ...item, imageData };
+      }
+    }
+    return item;
+  })
+);
+
+// Sort photos by publication date descending (newest first, e.g. 2026 -> 2016)
+const sortedImageEntries = Object.entries(images).sort(([pathA], [pathB]) =>
+  comparePhotoPathsByDateDesc(pathA, pathB)
+);
+
+const featuredPhotos = await Promise.all(
+  sortedImageEntries.slice(0, carouselCount).map(async ([path, imageImporter]) => {
+    const { default: imageData } = await imageImporter();
+    const filename = path.split('/').pop() ?? '';
+    const photo = pictureLogsMap.get(filename);
+    const altText = photo ? `${photo.title} — ${photo.location}` : 'Moment from life in Japan';
+    return {
+      imageData,
+      altText,
+      photo,
+    };
+  })
+);
+
+const homeEntry = await getEntry('pages', 'home');
+const homeData = homeEntry!.data;
+const pageTitle = homeData.pageTitle;
+const description = homeData.description;
+const intro = homeData.intro!;
+const photosSection = homeData.photosSection!;
+const blogSection = homeData.blogSection!;
+const logSection = homeData.logSection!;
+
+const homeSections = [
+  { id: 'intro', label: 'Intro' },
+  { id: 'photos', label: 'Photos' },
+  { id: 'blog', label: 'Blog' },
+  { id: 'log', label: 'Log' },
+];
+---
+
+<BaseLayout
+  pageTitle={pageTitle}
+  description={description}
+  image="/og/home.png"
+  imageAlt={siteConfig.author.name}
+>
+
+<!-- Sub-Navigation Bar: In breadcrumbs row, pops out on scroll -->
+<SectionNav sections={homeSections} slot="breadcrumb-extra" ariaLabel="Homepage sections" />
+
+<!-- blurb / hero section with ambient hue background -->
+
+<div id="intro" class="scroll-mt-16 relative isolate overflow-hidden py-24 sm:py-32">
+  <AmbientGlow preset="home-top" />
+
+  <div class="mx-auto max-w-7xl px-6 lg:px-8">
+    <div class="mx-auto max-w-2xl lg:mx-0 lg:max-w-none rounded-2xl p-8 sm:p-12 shadow-lg ring-1 ring-gray-900/5 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm dark:ring-white/10">
+      <p class="text-base/7 font-semibold text-amber-600 dark:text-amber-500">{intro.eyebrow}</p>
+      <h1 class="mt-2 text-4xl font-semibold tracking-tight text-pretty text-gray-900 dark:text-white sm:text-5xl">{intro.heading}</h1>
+      <div class="mt-8 grid max-w-xl grid-cols-1 gap-8 text-base/7 text-gray-700 dark:text-gray-300 lg:max-w-none lg:grid-cols-2">
+        <div>
+          <p>
+            {intro.leftColumn}
+          </p>
+        </div>
+        <div class="space-y-4">
+          <p>
+            {intro.rightColumn}
+          </p>
+          <div class="pt-1">
+            <a href={intro.ctaHref} class="inline-block text-sm/6 font-semibold text-amber-600 hover:text-amber-500 dark:text-amber-500 dark:hover:text-amber-400">{intro.ctaLabel} <span aria-hidden="true">&rarr;</span></a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <AmbientGlow preset="home-bottom" />
+</div>
+
+<!-- Photo Roll Showcase -->
+<section id="photos" aria-labelledby="home-photo-heading" class="scroll-mt-16 relative isolate overflow-hidden bg-gray-50 dark:bg-gray-800/40 border-y border-gray-200/70 dark:border-gray-800 py-24 sm:py-32 transition-colors" data-carousel-container="photos">
+  <AmbientGlow preset="home-photos" />
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <header class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div class="max-w-2xl">
+        <h2 id="home-photo-heading" class="text-4xl font-semibold tracking-tight text-pretty text-gray-900 dark:text-white sm:text-5xl">
+          {photosSection.heading}
+        </h2>
+        <p class="mt-2 text-lg/8 text-gray-600 dark:text-gray-400">
+          {photosSection.subtitle}{' '}
+          <a href="/photography/" class="text-sm/6 font-semibold text-amber-600 hover:text-amber-500 dark:text-amber-500 dark:hover:text-amber-400">
+            {photosSection.linkLabel} <span aria-hidden="true">&rarr;</span>
+          </a>
+        </p>
+      </div>
+
+      <!-- Carousel Navigation Island -->
+      <div class="flex items-center gap-3 shrink-0 self-start sm:self-end">
+        <span class="carousel-counter text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800/80 px-2.5 py-1 rounded-full ring-1 ring-inset ring-gray-200 dark:ring-gray-700">
+          1–3 of 7
+        </span>
+        <div class="flex items-center gap-1.5">
+          <button
+            type="button"
+            class="carousel-prev size-9.5 inline-flex items-center justify-center rounded-full border border-gray-200/80 dark:border-gray-800 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 shadow-xs hover:border-amber-500 hover:text-amber-500 dark:hover:border-amber-500 dark:hover:text-amber-400 transition-colors disabled:opacity-35 disabled:cursor-not-allowed cursor-pointer"
+            aria-label="Previous photos"
+            disabled
+          >
+            <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            class="carousel-next size-9.5 inline-flex items-center justify-center rounded-full border border-gray-200/80 dark:border-gray-800 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 shadow-xs hover:border-amber-500 hover:text-amber-500 dark:hover:border-amber-500 dark:hover:text-amber-400 transition-colors disabled:opacity-35 disabled:cursor-not-allowed cursor-pointer"
+            aria-label="Next photos"
+          >
+            <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div class="relative mt-12 sm:mt-14 border-t border-gray-200/80 dark:border-gray-800 pt-12 sm:pt-14">
+      <div
+        class="carousel-track no-scrollbar flex gap-8 overflow-x-auto scroll-smooth snap-x snap-mandatory pt-2 pb-6 focus:outline-hidden"
+        tabindex="0"
+        aria-label="Photo Roll carousel"
+      >
+        {featuredPhotos.map(({ imageData, altText, photo }) => (
+          <div class="carousel-item snap-start shrink-0 w-[85%] sm:w-[calc((100%-2rem)/2)] lg:w-[calc((100%-4rem)/3)] flex flex-col">
+            <a href={photo ? `/photography/?photo=${photo.id}` : '/photography/'} class="group block h-full">
+              <div class="border-beam-card relative w-full h-full overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-lg ring-1 ring-gray-900/5 dark:ring-white/10 transition-all duration-300 hover:shadow-xl">
+                <Image
+                  src={imageData}
+                  alt={altText}
+                  loading="lazy"
+                  decoding="async"
+                  class="aspect-video w-full h-full rounded-2xl bg-gray-100 dark:bg-gray-700 object-cover sm:aspect-2/1 lg:aspect-3/2 transition-transform duration-300 group-hover:scale-[1.02]"
+                />
+              </div>
+            </a>
+          </div>
+        ))}
+      </div>
+
+      <!-- Pagination Dots -->
+      <div class="carousel-dots mt-4 flex items-center justify-center gap-2" role="tablist" aria-label="Photo carousel pagination">
+        {featuredPhotos.map((_, i) => (
+          <button
+            type="button"
+            class={`carousel-dot h-1.5 rounded-full transition-all duration-300 cursor-pointer focus:outline-hidden focus-visible:ring-2 focus-visible:ring-amber-500 ${
+              i === 0
+                ? 'w-6 bg-amber-500 dark:bg-amber-400 shadow-xs'
+                : 'w-2 bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600'
+            }`}
+            data-index={i}
+            aria-label={`Go to photo ${i + 1}`}
+          />
+        ))}
+      </div>
+    </div>
+
+    <div class="mt-10 sm:mt-12 flex justify-end">
+      <a
+        href="/photography/"
+        class="group inline-flex items-center gap-1.5 text-sm/6 font-semibold text-amber-600 hover:text-amber-500 dark:text-amber-500 dark:hover:text-amber-400 transition-colors"
+      >
+        <span>{photosSection.footerLinkLabel}</span>
+        <span aria-hidden="true" class="transition-transform group-hover:translate-x-0.5">&rarr;</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- Blog Showcase -->
+<section id="blog" aria-labelledby="home-blog-heading" class="scroll-mt-16 relative isolate overflow-hidden py-24 sm:py-32" data-carousel-container="blog">
+  <AmbientGlow preset="home-blog" />
+  <div class="mx-auto max-w-7xl px-6 lg:px-8">
+    <header class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div class="max-w-2xl">
+        <h2 id="home-blog-heading" class="text-4xl font-semibold tracking-tight text-pretty text-gray-900 dark:text-white sm:text-5xl">
+          {blogSection.heading}
+        </h2>
+        <p class="mt-2 text-lg/8 text-gray-600 dark:text-gray-400">
+          {blogSection.subtitle}{' '}
+          <a href="/blog/" class="text-sm/6 font-semibold text-amber-600 hover:text-amber-500 dark:text-amber-500 dark:hover:text-amber-400">
+            {blogSection.linkLabel} <span aria-hidden="true">&rarr;</span>
+          </a>
+        </p>
+      </div>
+
+      <!-- Carousel Navigation Island -->
+      <div class="flex items-center gap-3 shrink-0 self-start sm:self-end">
+        <span class="carousel-counter text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800/80 px-2.5 py-1 rounded-full ring-1 ring-inset ring-gray-200 dark:ring-gray-700">
+          1–3 of 7
+        </span>
+        <div class="flex items-center gap-1.5">
+          <button
+            type="button"
+            class="carousel-prev size-9.5 inline-flex items-center justify-center rounded-full border border-gray-200/80 dark:border-gray-800 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 shadow-xs hover:border-amber-500 hover:text-amber-500 dark:hover:border-amber-500 dark:hover:text-amber-400 transition-colors disabled:opacity-35 disabled:cursor-not-allowed cursor-pointer"
+            aria-label="Previous blog posts"
+            disabled
+          >
+            <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            class="carousel-next size-9.5 inline-flex items-center justify-center rounded-full border border-gray-200/80 dark:border-gray-800 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 shadow-xs hover:border-amber-500 hover:text-amber-500 dark:hover:border-amber-500 dark:hover:text-amber-400 transition-colors disabled:opacity-35 disabled:cursor-not-allowed cursor-pointer"
+            aria-label="Next blog posts"
+          >
+            <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div class="relative mt-12 sm:mt-14 border-t border-gray-200/80 dark:border-gray-800 pt-12 sm:pt-14">
+      <div
+        class="carousel-track no-scrollbar flex gap-8 overflow-x-auto scroll-smooth snap-x snap-mandatory pt-2 pb-6 focus:outline-hidden"
+        tabindex="0"
+        aria-label="Blog posts carousel"
+      >
+        {featuredBlogPosts.map(({ post, video, firstParagraph }) => {
+          return (
+            <div class="carousel-item snap-start shrink-0 w-[85%] sm:w-[calc((100%-2rem)/2)] lg:w-[calc((100%-4rem)/3)] flex flex-col">
+              <article class="flex h-full flex-col">
+                <PostDateMeta
+                  pubDate={post.data.pubDate}
+                  updatedDate={post.data.updatedDate}
+                  class="mb-3"
+                />
+                <div class="border-beam-card group relative flex flex-1 flex-col justify-between overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-lg ring-1 ring-gray-900/5 dark:ring-white/10 transition hover:shadow-xl">
+                  {video && (
+                    <VideoCardPoster
+                      videoId={video.videoId}
+                      title={video.title}
+                      thumbUrl={video.thumbUrl}
+                      badgeLabel="Video Article"
+                      playButtonSize="md"
+                    />
+                  )}
+                  <div class="flex flex-1 flex-col justify-between p-6">
+                    <div>
+                      <h3 class="text-lg/6 font-semibold text-gray-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                        <a href={`/blog/${post.id}/`}>
+                          <span class="absolute inset-0"></span>
+                          {post.data.title}
+                        </a>
+                      </h3>
+                      {!video && (
+                        <p class:list={[
+                          'mt-4 text-sm/6 text-gray-600 dark:text-gray-300',
+                          hasVideoInFeatured ? 'line-clamp-6 lg:line-clamp-7' : 'line-clamp-3',
+                        ]}>
+                          <span class="font-medium text-gray-800 dark:text-gray-200">{post.data.description}</span>
+                          {hasVideoInFeatured && firstParagraph && (
+                            <span class="mt-2 block text-gray-500 dark:text-gray-400">{firstParagraph}</span>
+                          )}
+                        </p>
+                      )}
+                    </div>
+                    <div class="mt-4 flex items-center justify-between gap-3 border-t border-gray-100 dark:border-gray-700/60 pt-3 text-xs">
+                      <div class="relative z-10 min-w-0 flex-1 overflow-hidden">
+                        <TagList tags={post.data.tags} limit={3} singleLine={true} />
+                      </div>
+                      <span class="inline-flex shrink-0 items-center gap-1 text-gray-400 dark:text-gray-500">
+                        <svg class="size-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                          <circle cx="12" cy="12" r="10" />
+                          <polyline points="12 6 12 12 16 14" />
+                        </svg>
+                        {getReadingTime(post.body)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <AuthorChip author={post.data.author} />
+              </article>
+            </div>
+          );
+        })}
+      </div>
+
+      <!-- Pagination Dots -->
+      <div class="carousel-dots mt-4 flex items-center justify-center gap-2" role="tablist" aria-label="Blog posts carousel pagination">
+        {featuredBlogPosts.map((_, i) => (
+          <button
+            type="button"
+            class={`carousel-dot h-1.5 rounded-full transition-all duration-300 cursor-pointer focus:outline-hidden focus-visible:ring-2 focus-visible:ring-amber-500 ${
+              i === 0
+                ? 'w-6 bg-amber-500 dark:bg-amber-400 shadow-xs'
+                : 'w-2 bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600'
+            }`}
+            data-index={i}
+            aria-label={`Go to article ${i + 1}`}
+          />
+        ))}
+      </div>
+    </div>
+
+    <div class="mt-10 sm:mt-12 flex justify-end">
+      <a
+        href="/blog/#older-posts"
+        class="group inline-flex items-center gap-1.5 text-sm/6 font-semibold text-amber-600 hover:text-amber-500 dark:text-amber-500 dark:hover:text-amber-400 transition-colors"
+      >
+        <span>{blogSection.footerLinkLabel}</span>
+        <span aria-hidden="true" class="transition-transform group-hover:translate-x-0.5">&rarr;</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- Log Showcase -->
+<section id="log" aria-labelledby="home-log-heading" class="scroll-mt-16 relative isolate overflow-hidden bg-gray-50 dark:bg-gray-800/40 border-t border-gray-200/70 dark:border-gray-800 py-24 sm:py-32 transition-colors" data-carousel-container="log">
+  <AmbientGlow preset="home-log" />
+  <div class="mx-auto max-w-7xl px-6 lg:px-8">
+    <header class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div class="max-w-2xl">
+        <h2 id="home-log-heading" class="text-4xl font-semibold tracking-tight text-pretty text-gray-900 dark:text-white sm:text-5xl">
+          {logSection.heading}
+        </h2>
+        <p class="mt-2 text-lg/8 text-gray-600 dark:text-gray-400">
+          {logSection.subtitle}{' '}
+          <a href="/log/" class="text-sm/6 font-semibold text-amber-600 hover:text-amber-500 dark:text-amber-500 dark:hover:text-amber-400">
+            {logSection.linkLabel} <span aria-hidden="true">&rarr;</span>
+          </a>
+        </p>
+      </div>
+
+      <!-- Carousel Navigation Island -->
+      <div class="flex items-center gap-3 shrink-0 self-start sm:self-end">
+        <span class="carousel-counter text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800/80 px-2.5 py-1 rounded-full ring-1 ring-inset ring-gray-200 dark:ring-gray-700">
+          1–3 of 7
+        </span>
+        <div class="flex items-center gap-1.5">
+          <button
+            type="button"
+            class="carousel-prev size-9.5 inline-flex items-center justify-center rounded-full border border-gray-200/80 dark:border-gray-800 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 shadow-xs hover:border-amber-500 hover:text-amber-500 dark:hover:border-amber-500 dark:hover:text-amber-400 transition-colors disabled:opacity-35 disabled:cursor-not-allowed cursor-pointer"
+            aria-label="Previous log entries"
+            disabled
+          >
+            <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            class="carousel-next size-9.5 inline-flex items-center justify-center rounded-full border border-gray-200/80 dark:border-gray-800 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 shadow-xs hover:border-amber-500 hover:text-amber-500 dark:hover:border-amber-500 dark:hover:text-amber-400 transition-colors disabled:opacity-35 disabled:cursor-not-allowed cursor-pointer"
+            aria-label="Next log entries"
+          >
+            <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div class="relative mt-12 sm:mt-14 border-t border-gray-200/80 dark:border-gray-800 pt-12 sm:pt-14">
+      <div
+        class="carousel-track no-scrollbar flex gap-8 overflow-x-auto scroll-smooth snap-x snap-mandatory pt-2 pb-6 focus:outline-hidden"
+        tabindex="0"
+        aria-label="Log entries carousel"
+      >
+        {logEntries.map((entry) => {
+          const anchorId = entry.id;
+          return (
+            <div class="carousel-item snap-start shrink-0 w-[85%] sm:w-[calc((100%-2rem)/2)] lg:w-[calc((100%-4rem)/3)] flex flex-col">
+              <article class="flex h-full flex-col">
+                <div class="mb-3 flex items-center gap-x-3 text-xs">
+                  <FormattedDate date={entry.date} />
+                  {entry.kind === 'note' && (
+                    <span class="inline-flex items-center gap-1 rounded-md bg-gray-100 dark:bg-gray-800/80 px-2 py-0.5 text-[11px] font-medium text-gray-600 dark:text-gray-300 ring-1 ring-inset ring-gray-200 dark:ring-gray-700/80">
+                      <svg class="size-3 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v4.518Z" />
+                      </svg>
+                      <span>Status-Update</span>
+                    </span>
+                  )}
+                  {entry.kind === 'changelog' && (
+                    <span class="inline-flex items-center gap-1 rounded-md bg-gray-100 dark:bg-gray-800/80 px-2 py-0.5 text-[11px] font-medium text-gray-600 dark:text-gray-300 ring-1 ring-inset ring-gray-200 dark:ring-gray-700/80">
+                      <svg class="size-3 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                      </svg>
+                      <span>Changelog</span>
+                    </span>
+                  )}
+                  {entry.kind === 'photo' && (
+                    <span class="inline-flex items-center gap-1 rounded-md bg-gray-100 dark:bg-gray-800/80 px-2 py-0.5 text-[11px] font-medium text-gray-600 dark:text-gray-300 ring-1 ring-inset ring-gray-200 dark:ring-gray-700/80">
+                      <svg class="size-3 text-gray-500 dark:text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path d="M1 5.25A2.25 2.25 0 0 1 3.25 3h2.382a2.25 2.25 0 0 0 1.95-1.125l.436-.654A2.25 2.25 0 0 1 10.068 0h3.864a2.25 2.25 0 0 1 2.05 1.221l.436.654A2.25 2.25 0 0 0 18.368 3h2.382A2.25 2.25 0 0 1 23 5.25v12.5A2.25 2.25 0 0 1 20.75 20H3.25A2.25 2.25 0 0 1 1 17.75V5.25ZM12 15a5 5 0 1 0 0-10 5 5 0 0 0 0 10Zm0-2a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"/>
+                      </svg>
+                      <span>Photo</span>
+                    </span>
+                  )}
+                </div>
+
+                {entry.kind === 'photo' && entry.imageData ? (
+                  <div class="border-beam-card group relative flex flex-1 flex-col justify-end overflow-hidden rounded-2xl bg-gray-900 shadow-lg ring-1 ring-gray-900/5 dark:ring-white/10 transition hover:shadow-xl min-h-[13.5rem] cursor-pointer">
+                    <a
+                      href={entry.photoId ? getGalleryPhotoHref(entry.photoId) : '/photography/'}
+                      aria-label={`View ${entry.title} in photo gallery`}
+                      class="absolute inset-0 z-10 rounded-2xl focus:outline-hidden focus-visible:ring-2 focus-visible:ring-amber-500"
+                    ></a>
+                    <Image
+                      src={entry.imageData}
+                      alt={entry.title}
+                      width={640}
+                      height={400}
+                      loading="lazy"
+                      decoding="async"
+                      class="pointer-events-none absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                    <div
+                      class="pointer-events-none absolute inset-0 bg-gradient-to-t from-gray-950/90 via-gray-950/45 to-gray-950/10 transition-opacity duration-300 group-hover:from-gray-950/95"
+                      aria-hidden="true"
+                    ></div>
+                    <div class="pointer-events-none relative z-20 flex flex-col justify-end p-5 sm:p-6">
+                      <h3 class="text-lg/6 font-semibold text-white group-hover:text-amber-300 transition-colors drop-shadow-xs">
+                        {entry.title}
+                      </h3>
+                      {entry.excerpt && (
+                        <p class="mt-1.5 line-clamp-1 text-xs/5 text-gray-200/90 drop-shadow-xs">
+                          {entry.excerpt}
+                        </p>
+                      )}
+                      <div class="mt-3 flex items-center justify-between gap-3 border-t border-white/15 pt-3 text-xs">
+                        <div class="pointer-events-auto relative z-30 min-w-0 flex-1 overflow-hidden [&_a]:!bg-gray-900/65 [&_a]:!text-gray-100 [&_a]:!ring-white/20 [&_a:hover]:!bg-amber-500/30 [&_a:hover]:!text-amber-200 [&_a]:backdrop-blur-xs">
+                          {entry.tags && entry.tags.length > 0 && (
+                            <TagList tags={entry.tags} limit={3} singleLine={true} />
+                          )}
+                        </div>
+                        <span class="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-amber-400 group-hover:text-amber-300 transition-colors drop-shadow-xs">
+                          View in gallery <span aria-hidden="true">&rarr;</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div class="border-beam-card group relative flex flex-1 flex-col justify-between rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-lg ring-1 ring-gray-900/5 dark:ring-white/10 transition hover:shadow-xl">
+                    <div>
+                      <h3 class="text-lg/6 font-semibold text-gray-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                        <a href={`/log/#${anchorId}`}>
+                          <span class="absolute inset-0"></span>
+                          {entry.title}
+                        </a>
+                      </h3>
+                      <p class="mt-4 line-clamp-3 text-sm/6 text-gray-600 dark:text-gray-300">
+                        {entry.excerpt}
+                      </p>
+                    </div>
+                    <div class="mt-4 flex items-center justify-between gap-3 border-t border-gray-100 dark:border-gray-700/60 pt-3 text-xs">
+                      <div class="relative z-10 min-w-0 flex-1 overflow-hidden">
+                        {entry.tags && entry.tags.length > 0 && (
+                          <TagList tags={entry.tags} limit={3} singleLine={true} />
+                        )}
+                      </div>
+                      <span class="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-amber-600 group-hover:text-amber-500 dark:text-amber-500 dark:group-hover:text-amber-400 transition-colors">
+                        Read in log <span aria-hidden="true">&rarr;</span>
+                      </span>
+                    </div>
+                  </div>
+                )}
+                <AuthorChip />
+              </article>
+            </div>
+          );
+        })}
+      </div>
+
+      <!-- Pagination Dots -->
+      <div class="carousel-dots mt-4 flex items-center justify-center gap-2" role="tablist" aria-label="Log entries carousel pagination">
+        {logEntries.map((_, i) => (
+          <button
+            type="button"
+            class={`carousel-dot h-1.5 rounded-full transition-all duration-300 cursor-pointer focus:outline-hidden focus-visible:ring-2 focus-visible:ring-amber-500 ${
+              i === 0
+                ? 'w-6 bg-amber-500 dark:bg-amber-400 shadow-xs'
+                : 'w-2 bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600'
+            }`}
+            data-index={i}
+            aria-label={`Go to log entry ${i + 1}`}
+          />
+        ))}
+      </div>
+    </div>
+
+    <div class="mt-10 sm:mt-12 flex justify-end">
+      <a
+        href="/log/"
+        class="group inline-flex items-center gap-1.5 text-sm/6 font-semibold text-amber-600 hover:text-amber-500 dark:text-amber-500 dark:hover:text-amber-400 transition-colors"
+      >
+        <span>{logSection.footerLinkLabel}</span>
+        <span aria-hidden="true" class="transition-transform group-hover:translate-x-0.5">&rarr;</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+</BaseLayout>
+
+<script>
+  import '../scripts/youtube-embed';
+  import '../scripts/carousel';
+</script>
