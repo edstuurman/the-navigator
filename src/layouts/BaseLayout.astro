@@ -67,7 +67,8 @@ if (showBreadcrumbs && breadcrumbsList.length === 0) {
       <Footer />
     </div>
     <script>
-      import '../scripts/tech-tooltips';
+      // Global enhancement only. Feature scripts load from the components that need them
+      // (see `src/components/scripts/`, `SectionNav.astro`), so pages ship only the JS they use.
       import '../scripts/border-beam';
     </script>
   </body>

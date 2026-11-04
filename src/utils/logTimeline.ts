@@ -1,12 +1,14 @@
 import { getCollection, render, type CollectionEntry } from 'astro:content';
 import type { ImageMetadata } from 'astro';
 import crypto from 'node:crypto';
+import fs from 'node:fs';
 import {
   pictureLogs,
   comparePhotoPathsByDateDesc,
-  type PictureLogEntry,
+  type PictureLog,
 } from './pictureLogs';
 import { getChangelogEntries, type ChangelogEntry } from './changelog';
+import { loadPhotoImage } from './photoImages';
 import { LOG_PAGE_SIZE, GALLERY_PAGE_SIZE, getPaginatedHref } from './pagination';
 
 export interface NoteTimelineItem {
@@ -22,7 +24,7 @@ export interface PhotoTimelineItem {
   kind: 'photo';
   id: string;
   date: Date;
-  photo: PictureLogEntry;
+  photo: PictureLog;
   imageMetadata: ImageMetadata | null;
 }
 
@@ -37,10 +39,6 @@ export interface LogDataBundle {
   photoEntries: PhotoTimelineItem[];
   anchorToPage: Record<string, number>;
 }
-
-const photoImages = import.meta.glob<{ default: ImageMetadata }>(
-  '/src/images/photography/*.{jpg,jpeg,png,webp}',
-);
 
 let cachedLogBundlePromise: Promise<LogDataBundle> | null = null;
 
@@ -67,8 +65,7 @@ export function getLogDataBundle(): Promise<LogDataBundle> {
 
       const photoEntries: PhotoTimelineItem[] = await Promise.all(
         pictureLogs.map(async (photo) => {
-          const imgImporter = photoImages[photo.imageKey];
-          const imageMetadata = imgImporter ? (await imgImporter()).default : null;
+          const imageMetadata = await loadPhotoImage(photo.imageKey);
           return {
             kind: 'photo' as const,
             id: `photo-${photo.id}`,
@@ -165,9 +162,27 @@ export function getGalleryPhotoHref(photoId: number): string {
   return `${base}?photo=${photoId}`;
 }
 
+const LOG_TEMPLATE_DIGEST = (() => {
+  const h = crypto.createHash('sha256');
+  for (const p of [
+    'src/components/pages/LogIndexView.astro',
+    'src/layouts/BaseLayout.astro',
+    'src/components/Footer.astro',
+    'src/components/TagList.astro',
+    'src/styles/global.css',
+  ]) {
+    try {
+      h.update(fs.readFileSync(p));
+    } catch {
+      // ignore if path unavailable
+    }
+  }
+  return h.digest('hex');
+})();
+
 /**
  * Computes a deterministic cache key for a paginated log sub-stream route.
- * Changes only when the entries displayed on this specific page (or total count) change.
+ * Changes only when the entries displayed on this specific page (or total count or templates) change.
  */
 export function computeLogPageCacheKey(
   filter: LogFilterKind,
@@ -175,6 +190,7 @@ export function computeLogPageCacheKey(
   allItems: TimelineItem[]
 ): string {
   const hash = crypto.createHash('sha256');
+  hash.update(LOG_TEMPLATE_DIGEST);
   hash.update(filter);
   hash.update(String(currentPage));
   hash.update(String(allItems.length));

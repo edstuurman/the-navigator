@@ -57,4 +57,3 @@ if (document.readyState === 'loading') {
   checkVideoHash();
 }
 window.addEventListener('hashchange', checkVideoHash);
-document.addEventListener('astro:page-load', checkVideoHash);

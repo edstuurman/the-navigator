@@ -1,5 +1,5 @@
 import { getCollection, type CollectionEntry } from 'astro:content';
-import fs from 'node:fs';
+import { formatSiteDate } from './dates';
 
 export interface PictureLog {
   id: number;
@@ -17,26 +17,16 @@ export interface PictureLog {
 
 export function toPictureLog(entry: CollectionEntry<'photography'>): PictureLog {
   const d = entry.data;
-  let attribution = d.attribution;
-  if (!attribution && entry.filePath) {
-    try {
-      const raw = fs.readFileSync(entry.filePath, 'utf8');
-      const m = raw.match(/^attribution:\s*['"]?([^'"\r\n]+)['"]?\s*$/m);
-      if (m) attribution = m[1].trim();
-    } catch {
-      // ignore fallback read errors
-    }
-  }
   return {
     id: d.id,
     filename: d.filename,
     imageKey: `/src/images/photography/${d.filename}`,
     title: d.title,
     pubDate: d.pubDate,
-    dateFormatted: d.dateFormatted || d.pubDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    dateFormatted: d.dateFormatted || formatSiteDate(d.pubDate),
     category: d.category,
     location: d.location,
-    attribution,
+    attribution: d.attribution,
     story: entry.body?.trim() || '',
     tags: d.tags,
   };

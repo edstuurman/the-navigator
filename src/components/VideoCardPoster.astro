@@ -1,4 +1,5 @@
 ---
+import YouTubeEmbedScript from './scripts/YouTubeEmbedScript.astro';
 interface Props {
   videoId: string;
   title: string;
@@ -53,8 +54,8 @@ const iconSizeClasses = {
       alt={title}
       loading="lazy"
       decoding="async"
-      width="960"
-      height="540"
+      width="640"
+      height="360"
       class="h-full w-full object-cover transition-transform duration-500 group-hover/poster:scale-105"
     />
     <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-gray-950/90 via-gray-950/20 to-gray-950/40" aria-hidden="true"></div>
@@ -95,3 +96,4 @@ const iconSizeClasses = {
     </div>
   </button>
 </div>
+<YouTubeEmbedScript />

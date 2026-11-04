@@ -142,9 +142,9 @@ export const themeMechanics: ThemeMechanicsConfig = {
       { label: 'Home', href: '/', enabled: true },
       { label: 'About', href: '/about/', enabled: true },
       { label: 'Now', href: '/now/', enabled: true },
-      { label: 'Log', href: '/log/', enabled: true },
       { label: 'Blog', href: '/blog/', enabled: true, activePrefixes: ['/tags'] },
       { label: 'Photography', href: '/photography/', enabled: true },
+      { label: 'Log', href: '/log/', enabled: true },
       { label: 'Contact', href: '/contact/', enabled: true },
     ],
   },
@@ -173,11 +173,10 @@ export const themeMechanics: ThemeMechanicsConfig = {
       { label: 'AWS S3', href: 'https://aws.amazon.com/s3/', icon: 's3' },
       { label: 'AWS MRAP', href: 'https://aws.amazon.com/s3/features/multi-region-access-points/', icon: 'mrap' },
       { label: 'AWS CloudFront', href: 'https://aws.amazon.com/cloudfront/', icon: 'cloudfront' },
-      { label: 'Details', href: '/blog/2026-11-03-part-2-provisioning-aws-mrap-cloudfront-terraform-gitlab-ci/', icon: 'info', highlight: true },
+      { label: 'Colophon', href: '/blog/2026-11-03-part-2-provisioning-aws-mrap-cloudfront-terraform-gitlab-ci/', icon: 'info', highlight: true },
     ],
-    // It's a free theme — you can set this to `false` to hide the footer credit,
-    // though it'd be cool if you kept this one link!
-    showThemeAttribution: true,
+    // It's a free theme — set this to `true` if you'd like to display the footer credit!
+    showThemeAttribution: false,
   },
 };
 

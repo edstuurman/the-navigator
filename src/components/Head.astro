@@ -87,7 +87,7 @@ const personSchema = {
 };
 
 // Determine page-specific Google Rich Result Schema
-let pageSchema: Record<string, any>;
+let pageSchema: Record<string, unknown>;
 
 if (type === 'article') {
   pageSchema = {
@@ -187,10 +187,11 @@ interface BreadcrumbItemSchema {
   item: string;
 }
 
-let breadcrumbItems: BreadcrumbItemSchema[] = [];
+// Breadcrumbs are computed once in `BaseLayout.astro`; pages without a trail (home, 404) pass none.
+const breadcrumbItems: BreadcrumbItemSchema[] = [];
 
 if (breadcrumbs && breadcrumbs.length > 0) {
-  breadcrumbItems = [
+  breadcrumbItems.push(
     { name: "Home", item: `${themeConfig.site.url}/` },
     ...breadcrumbs
       .filter((b) => b.name.toLowerCase() !== "home")
@@ -198,26 +199,7 @@ if (breadcrumbs && breadcrumbs.length > 0) {
         name: b.name,
         item: b.href ? new URL(b.href, Astro.site).href : canonicalURL.href
       }))
-  ];
-} else if (canonicalURL.pathname !== "/" && canonicalURL.pathname !== "") {
-  const cleanPath = canonicalURL.pathname.replace(/^\/|\/$/g, "");
-  const segments = cleanPath.split("/").filter(Boolean);
-
-  breadcrumbItems.push({ name: "Home", item: `${themeConfig.site.url}/` });
-
-  if (segments.length === 1) {
-    const seg = segments[0];
-    const name = seg === "about" ? "About" : seg === "blog" ? "Blog" : seg === "photography" ? "Photography" : seg === "tags" ? "Tags" : pageTitle;
-    breadcrumbItems.push({ name, item: canonicalURL.href });
-  } else if (segments[0] === "blog" && segments.length >= 2) {
-    breadcrumbItems.push({ name: "Blog", item: `${themeConfig.site.url}/blog/` });
-    const cleanTitle = pageTitle.replace(new RegExp(` - ${themeConfig.site.title}$`), "").trim();
-    breadcrumbItems.push({ name: cleanTitle, item: canonicalURL.href });
-  } else if (segments[0] === "tags" && segments.length >= 2) {
-    breadcrumbItems.push({ name: "Tags", item: `${themeConfig.site.url}/tags/` });
-    const tagName = section || segments[1];
-    breadcrumbItems.push({ name: `#${tagName}`, item: canonicalURL.href });
-  }
+  );
 }
 
 const breadcrumbSchema = breadcrumbItems.length > 1
@@ -260,7 +242,6 @@ const breadcrumbSchema = breadcrumbItems.length > 1
 
 <!-- Primary Meta Tags -->
 <title>{pageTitle}</title>
-<meta name="title" content={pageTitle} />
 <meta name="description" content={description} />
 <meta name="author" content={author} />
 <meta name="keywords" content={allKeywords.join(", ")} />
@@ -273,7 +254,6 @@ const breadcrumbSchema = breadcrumbItems.length > 1
 <meta property="og:title" content={pageTitle} />
 <meta property="og:description" content={description} />
 <meta property="og:image" content={imageURL.href} />
-<meta property="og:image:secure_url" content={imageURL.href} />
 <meta property="og:image:alt" content={resolvedImageAlt} />
 {imageWidth && <meta property="og:image:width" content={String(imageWidth)} />}
 {imageHeight && <meta property="og:image:height" content={String(imageHeight)} />}
@@ -299,9 +279,37 @@ const breadcrumbSchema = breadcrumbItems.length > 1
 <script type="application/ld+json" set:html={JSON.stringify(pageSchema)} />
 {breadcrumbSchema && <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />}
 
-{/* Umami Analytics (configurable via theme.config.ts) */}
+{/* Umami Analytics (configurable via theme.config.ts, deferred past critical render path) */}
 {themeConfig.integrations.umami.enabled && themeConfig.integrations.umami.websiteId && (
-  <script is:inline defer src={themeConfig.integrations.umami.scriptUrl} data-website-id={themeConfig.integrations.umami.websiteId}></script>
+  <script
+    is:inline
+    define:vars={{
+      umamiSrc: themeConfig.integrations.umami.scriptUrl,
+      umamiWebsiteId: themeConfig.integrations.umami.websiteId,
+    }}
+  >
+    (() => {
+      let loaded = false;
+      const loadUmami = () => {
+        if (loaded) return;
+        loaded = true;
+        const s = document.createElement('script');
+        s.async = true;
+        s.src = umamiSrc;
+        s.setAttribute('data-website-id', umamiWebsiteId);
+        document.head.appendChild(s);
+      };
+      const events = ['scroll', 'pointerdown', 'keydown', 'touchstart'];
+      const onInteract = () => {
+        events.forEach((e) => window.removeEventListener(e, onInteract));
+        loadUmami();
+      };
+      events.forEach((e) => window.addEventListener(e, onInteract, { once: true, passive: true }));
+      window.addEventListener('load', () => {
+        setTimeout(loadUmami, 3500);
+      }, { once: true });
+    })();
+  </script>
 )}
 
 <!-- Theme script: prevent flash of incorrect theme -->

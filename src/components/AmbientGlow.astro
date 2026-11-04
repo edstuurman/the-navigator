@@ -191,15 +191,3 @@ const inlineVars = [
   ]}
   style={inlineVars}
 ></div>
-
-<style is:global>
-  .ambient-atmosphere {
-    background-image: var(--ambient-light);
-    background-repeat: no-repeat;
-    background-size: 100% 100%;
-  }
-
-  :where(.dark, .dark *) .ambient-atmosphere {
-    background-image: var(--ambient-dark);
-  }
-</style>

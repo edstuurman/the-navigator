@@ -36,7 +36,7 @@ fi
 
 PLAN_FILE="$(mktemp)"
 
-awk -F'\t' '
+awk -F'\t' -v force_mutable="${FORCE_MUTABLE_RESYNC:-0}" '
   NR == FNR {
     if (NF >= 2 && $1 != "None") {
       remote_etag[$1] = $2
@@ -48,11 +48,14 @@ awk -F'\t' '
     md5 = $1
     key = $2
     local_seen[key] = 1
+    is_immutable = (index(key, "_astro/") == 1 || index(key, "yt-thumbs/") == 1)
     if (!(key in remote_etag)) {
+      print "UPLOAD\t" key
+    } else if (!is_immutable && force_mutable == "1") {
       print "UPLOAD\t" key
     } else if (remote_etag[key] != md5) {
       # Skip multipart ETag false-positives on immutable content-hashed assets
-      if (index(remote_etag[key], "-") > 0 && (index(key, "_astro/") == 1 || index(key, "yt-thumbs/") == 1)) {
+      if (index(remote_etag[key], "-") > 0 && is_immutable) {
         next
       }
       print "UPLOAD\t" key
@@ -123,14 +126,23 @@ if [ -s "$IMMUTABLE_FILE" ]; then
   ' _ {} "$BUCKET" < "$IMMUTABLE_FILE"
 fi
 
-# 2. Upload mutable routes concurrently
+# 2. Upload mutable routes concurrently with split Edge (s-maxage) & Browser (max-age) Cache-Control
 if [ -s "$MUTABLE_FILE" ]; then
   echo "==> Uploading mutable routes in parallel (concurrency: ${PARALLEL_JOBS})..."
   xargs -n 1 -P "$PARALLEL_JOBS" -I {} bash -c '
     set -euo pipefail
     key="$1"
     bucket="$2"
+    case "$key" in
+      og/*|*.png|*.svg|*.ico|*.webp|*.jpg|*.jpeg)
+        cache_ctrl="public, max-age=86400, s-maxage=31536000, stale-while-revalidate=86400"
+        ;;
+      *)
+        cache_ctrl="public, max-age=0, s-maxage=31536000, must-revalidate"
+        ;;
+    esac
     aws s3 cp "$key" "s3://${bucket}/${key}" \
+      --cache-control "$cache_ctrl" \
       --only-show-errors
     echo "  [uploaded] $key"
   ' _ {} "$BUCKET" < "$MUTABLE_FILE"

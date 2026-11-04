@@ -20,6 +20,12 @@ export interface SiteIdentityConfig {
     locale: string;
     /** RSS/Atom feed language code */
     language: string;
+    /**
+     * IANA timezone identifier (e.g. `'America/Los_Angeles'`, `'Asia/Tokyo'`, `'Europe/Amsterdam'`)
+     * used to interpret date-only frontmatter strings (`YYYY-MM-DD`) and format visible dates
+     * identically across local machines and UTC CI runners.
+     */
+    timeZone: string;
     /** Default SEO keywords merged with page-specific tags */
     defaultKeywords: string[];
   };
@@ -67,6 +73,7 @@ export const siteConfig: SiteIdentityConfig = {
       'Alex Mercer — Principal Cloud & Platform Architect. Distributed edge systems, multi-region AWS infrastructure, Terraform automation, and architectural photography.',
     locale: 'en_US',
     language: 'en-us',
+    timeZone: 'America/Los_Angeles',
     defaultKeywords: [
       'Alex Mercer',
       'example.com',
@@ -102,10 +109,10 @@ export const siteConfig: SiteIdentityConfig = {
   },
 
   socials: {
-    github: 'https://github.com/example',
-    gitlab: 'https://gitlab.com/example',
-    linkedin: 'https://www.linkedin.com/in/example/',
-    instagram: 'https://www.instagram.com/example/',
+    github: 'https://github.com',
+    gitlab: 'https://gitlab.com',
+    linkedin: 'https://www.linkedin.com',
+    instagram: 'https://www.instagram.com',
   },
 };
 

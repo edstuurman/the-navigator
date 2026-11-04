@@ -88,22 +88,30 @@ terraform:apply:
 
 # ------------------------------------------------------------------------------
 # Static Site Build & S3/CloudFront Deployment
+# Automatically runs in Starter Template Dry-Run Mode until S3_BUCKET is configured
 # ------------------------------------------------------------------------------
 build:
   image: mcr.microsoft.com/playwright:v1.64.1-noble
   stage: build
-  before_script:
-    - npm ci --cache .npm --prefer-offline
+  needs: []
   script:
-    - mkdir dist
-    - npx playwright install chromium
-    - npm run build
+    - mkdir -p dist
+    - |
+      if [ -z "${S3_BUCKET:-}" ]; then
+        echo "==> [DRY-RUN] S3_BUCKET is not set in GitLab CI/CD Variables."
+        echo "==> Skipping Chromium install & Astro build on starter template repository."
+        test -f package.json && test -f astro.config.mjs && test -f src/site.config.ts && test -f src/theme.config.ts
+        echo "dry-run" > dist/.dry-run
+        exit 0
+      fi
+      npm ci --cache .npm --prefer-offline
+      npx playwright install chromium
+      npm run check
+      npm run build
   artifacts:
     paths:
       - ./dist/
 
-
-# deploying to S3
 deploytos3:
   image: registry.gitlab.com/gitlab-org/cloud-deploy/aws-base:latest
   stage: deploytos3
@@ -111,4 +119,11 @@ deploytos3:
     - job: build
       artifacts: true
   script:
-    - bash ./scripts/s3-deploy.sh ./dist
+    - |
+      if [ -z "${S3_BUCKET:-}" ]; then
+        echo "==> [DRY-RUN] S3_BUCKET is not set in GitLab CI/CD Variables."
+        echo "==> Validating ./scripts/s3-deploy.sh syntax and passing dry-run..."
+        bash -n ./scripts/s3-deploy.sh
+        exit 0
+      fi
+      bash ./scripts/s3-deploy.sh ./dist

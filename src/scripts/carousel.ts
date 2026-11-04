@@ -16,6 +16,8 @@ export function initCarousels(): void {
   const containers = document.querySelectorAll<HTMLElement>('[data-carousel-container]');
   if (!containers.length) return;
 
+  const initialUpdaters: Array<{ read: () => void; write: () => void }> = [];
+
   containers.forEach((container) => {
     // Avoid duplicate initialization
     if (container.dataset.carouselInitialized === 'true') return;
@@ -47,7 +49,16 @@ export function initCarousels(): void {
       return targetItem.getBoundingClientRect().left - track.getBoundingClientRect().left + track.scrollLeft;
     };
 
-    const updateState = () => {
+    let cachedState = {
+      visibleCount: 1,
+      firstVisible: 0,
+      lastVisible: 1,
+      isStart: true,
+      isEnd: false,
+      activeIdx: 0,
+    };
+
+    const readState = () => {
       const { step } = getMetrics();
       const scrollLeft = track.scrollLeft;
       const trackWidth = track.clientWidth;
@@ -65,38 +76,55 @@ export function initCarousels(): void {
       }
 
       const lastVisible = isEnd ? total : Math.min(total, firstVisible + visibleCount);
+      const activeIdx = isEnd ? total - 1 : firstVisible;
 
-      // 1. Update counter pill
+      cachedState = { visibleCount, firstVisible, lastVisible, isStart, isEnd, activeIdx };
+    };
+
+    const writeState = () => {
+      const { visibleCount, firstVisible, lastVisible, isStart, isEnd, activeIdx } = cachedState;
+
+      // 1. Update counter pill only if text changed
       if (counter) {
-        if (visibleCount > 1) {
-          counter.textContent = `${firstVisible + 1}–${lastVisible} of ${total}`;
-        } else {
-          counter.textContent = `${firstVisible + 1} of ${total}`;
+        const nextText =
+          visibleCount > 1
+            ? `${firstVisible + 1}–${lastVisible} of ${total}`
+            : `${firstVisible + 1} of ${total}`;
+        if (counter.textContent !== nextText) {
+          counter.textContent = nextText;
         }
       }
 
-      // 2. Update navigation button states
-      if (prevBtn) {
+      // 2. Update navigation button states only if changed
+      if (prevBtn && prevBtn.disabled !== isStart) {
         prevBtn.disabled = isStart;
       }
-      if (nextBtn) {
+      if (nextBtn && nextBtn.disabled !== isEnd) {
         nextBtn.disabled = isEnd;
       }
 
-      // 3. Update pagination dots
-      const activeIdx = isEnd ? total - 1 : firstVisible;
+      // 3. Update pagination dots only if active state changed
       dots.forEach((dot, idx) => {
         const isActive = idx === activeIdx;
+        const currentlyActive = dot.getAttribute('aria-current') === 'true';
+        if (isActive === currentlyActive) return;
+
+        const indicator = dot.querySelector<HTMLElement>('.carousel-dot-indicator') ?? dot;
         if (isActive) {
-          dot.classList.remove('w-2', 'bg-gray-300', 'dark:bg-gray-700', 'hover:bg-gray-400', 'dark:hover:bg-gray-600');
-          dot.classList.add('w-6', 'bg-amber-500', 'dark:bg-amber-400', 'shadow-xs');
+          indicator.classList.remove('w-2', 'bg-gray-300', 'dark:bg-gray-700', 'hover:bg-gray-400', 'dark:hover:bg-gray-600', 'group-hover/dot:bg-gray-400', 'dark:group-hover/dot:bg-gray-600');
+          indicator.classList.add('w-6', 'bg-amber-500', 'dark:bg-amber-400', 'shadow-xs');
           dot.setAttribute('aria-current', 'true');
         } else {
-          dot.classList.remove('w-6', 'bg-amber-500', 'dark:bg-amber-400', 'shadow-xs');
-          dot.classList.add('w-2', 'bg-gray-300', 'dark:bg-gray-700', 'hover:bg-gray-400', 'dark:hover:bg-gray-600');
+          indicator.classList.remove('w-6', 'bg-amber-500', 'dark:bg-amber-400', 'shadow-xs');
+          indicator.classList.add('w-2', 'bg-gray-300', 'dark:bg-gray-700', 'group-hover/dot:bg-gray-400', 'dark:group-hover/dot:bg-gray-600');
           dot.removeAttribute('aria-current');
         }
       });
+    };
+
+    const updateState = () => {
+      readState();
+      writeState();
     };
 
     // Handle Previous button click
@@ -155,17 +183,31 @@ export function initCarousels(): void {
       { passive: true }
     );
 
-    // Resize observer
+    // Resize observer (skip initial synchronous observation fire to avoid duplicate reflow)
     if (typeof ResizeObserver !== 'undefined') {
+      let initializedResize = false;
       const resizeObserver = new ResizeObserver(() => {
-        updateState();
+        if (!initializedResize) {
+          initializedResize = true;
+          return;
+        }
+        if (!ticking) {
+          requestAnimationFrame(() => {
+            updateState();
+            ticking = false;
+          });
+          ticking = true;
+        }
       });
       resizeObserver.observe(track);
     }
 
-    // Initial state
-    updateState();
+    initialUpdaters.push({ read: readState, write: writeState });
   });
+
+  // Batch all initial DOM reads across all carousels before any DOM writes
+  initialUpdaters.forEach((u) => u.read());
+  initialUpdaters.forEach((u) => u.write());
 }
 
 // Auto-initialize on DOM ready and Astro page load
@@ -175,6 +217,5 @@ if (typeof document !== 'undefined') {
   } else {
     initCarousels();
   }
-  document.addEventListener('astro:page-load', initCarousels);
 }
 

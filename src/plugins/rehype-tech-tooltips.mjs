@@ -128,7 +128,7 @@ function resolveTooltipMeta(termText, nativeTitle, tooltipId) {
     `<span id="${escapeHtml(tooltipId)}" role="tooltip" class="tech-tooltip-bubble pointer-events-none opacity-0 invisible absolute bottom-full left-1/2 mb-2 z-50 w-72 sm:w-80 max-w-[calc(100vw-2rem)] p-3 rounded-lg bg-white/95 dark:bg-gray-900/98 text-gray-900 dark:text-gray-100 shadow-xl shadow-gray-900/10 dark:shadow-2xl ring-1 ring-gray-900/10 dark:ring-amber-500/25 backdrop-blur-md transition-all duration-150 ease-out text-left select-none">` +
     `<span class="flex items-center justify-between gap-2 pb-1.5 border-b border-gray-200/80 dark:border-gray-700/80">` +
     `<span class="inline-flex items-baseline gap-1.5 min-w-0">` +
-    `<span class="font-mono text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wide shrink-0">${escapeHtml(badgeTerm)}</span>` +
+    `<span class="font-mono text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wide shrink-0">${escapeHtml(badgeTerm)}</span>` +
     (displayName && displayName !== badgeTerm
       ? `<span class="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">${escapeHtml(displayName)}</span>`
       : '') +

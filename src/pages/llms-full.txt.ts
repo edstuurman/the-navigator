@@ -13,6 +13,7 @@ import { getChangelogEntries } from '../utils/changelog';
 import { getLogAnchorPageMap, getGalleryPhotoHref } from '../utils/logTimeline';
 import { getPaginatedHref } from '../utils/pagination';
 import { siteConfig } from '../site.config';
+import { formatSiteDate } from '../utils/dates';
 
 /**
  * Build-time generated `/llms-full.txt`: complete concatenated Markdown archive
@@ -40,7 +41,7 @@ export async function GET(context: APIContext) {
     .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
 
   const formatDate = (d: Date) =>
-    d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit', timeZone: 'UTC' });
+    formatSiteDate(d, { year: 'numeric', month: 'short', day: '2-digit' });
 
   const careerBlocks = experiences.map((exp) => {
     const lines = [
@@ -93,7 +94,7 @@ export async function GET(context: APIContext) {
 
   const changelogBlocks = changelogs.map((cl) =>
     [
-      `## Changelog: [${cl.version}] - ${cl.title}`,
+      `## Changelog: ${cl.title}`,
       `- URL: ${abs(getPaginatedHref('/log', logAnchorPages[cl.id] ?? 1, `#${cl.id}`))}`,
       `- Date: ${formatDate(cl.date)}`,
       '',

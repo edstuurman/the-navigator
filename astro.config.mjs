@@ -67,6 +67,7 @@ function youtubeThumbnails() {
           // Map each thumbnail file referenced by built pages -> the HTML files using it.
           const references = new Map();
           const refRe = new RegExp(`${THUMB_PUBLIC_PREFIX}/([A-Za-z0-9_.-]+\\.webp)`, 'g');
+          /** @param {string} d */
           const walk = (d) => {
             for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
               const full = path.join(d, entry.name);
@@ -97,7 +98,7 @@ function youtubeThumbnails() {
                 fs.writeFileSync(cached, await buildThumbnailBuffer(videoId));
                 logger.warn(`Re-downloaded missing YouTube thumbnail for ${videoId}`);
               } catch (err) {
-                logger.warn(`Thumbnail for ${videoId} unavailable (${err?.message ?? err}); using remote URL.`);
+                logger.warn(`Thumbnail for ${videoId} unavailable (${err instanceof Error ? err.message : String(err)}); using remote URL.`);
                 for (const page of pages) {
                   const html = fs.readFileSync(page, 'utf-8');
                   fs.writeFileSync(page, html.split(`${THUMB_PUBLIC_PREFIX}/${file}`).join(remoteThumbnailUrl(videoId)));
@@ -117,14 +118,195 @@ function youtubeThumbnails() {
   };
 }
 
+/**
+ * Astro integration inlining self-contained `/_astro/*.js` module scripts directly
+ * into built HTML pages so initial navigation has zero chained JS subrequests.
+ * @returns {import('astro').AstroIntegration}
+ */
+function inlineScripts() {
+  return {
+    name: 'inline-scripts',
+    hooks: {
+      'astro:build:done': async ({ dir, logger }) => {
+        try {
+          const distDir = fileURLToPath(dir);
+          const astroDir = path.join(distDir, '_astro');
+          if (!fs.existsSync(astroDir)) return;
+
+          const jsCache = new Map();
+          for (const entry of fs.readdirSync(astroDir, { withFileTypes: true })) {
+            if (!entry.isFile() || !entry.name.endsWith('.js')) continue;
+            const code = fs.readFileSync(path.join(astroDir, entry.name), 'utf-8');
+            // Only inline self-contained bundles without external ES module imports or closing script tags
+            if (!/\bimport\s*[\w*{]/.test(code) && !/\bfrom\s*['"]/.test(code) && !/<\/script/i.test(code)) {
+              jsCache.set(`/_astro/${entry.name}`, code.trim());
+            }
+          }
+          if (jsCache.size === 0) return;
+
+          const scriptRe = /<script\s+type="module"\s+src="(\/_astro\/[^"]+\.js)"><\/script>/g;
+          let inlinedCount = 0;
+
+          /** @param {string} d */
+          const walk = (d) => {
+            for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
+              const full = path.join(d, entry.name);
+              if (entry.isDirectory()) walk(full);
+              else if (entry.name.endsWith('.html')) {
+                const html = fs.readFileSync(full, 'utf-8');
+                let modified = false;
+                const updated = html.replace(scriptRe, (match, src) => {
+                  const code = jsCache.get(src);
+                  if (!code) return match;
+                  modified = true;
+                  return `<script type="module">${code}</script>`;
+                });
+                if (modified) {
+                  fs.writeFileSync(full, updated);
+                  inlinedCount++;
+                }
+              }
+            }
+          };
+          walk(distDir);
+          if (inlinedCount > 0) {
+            logger.info(`Inlined ${jsCache.size} module script bundle(s) across ${inlinedCount} HTML page(s)`);
+          }
+        } catch (err) {
+          logger.warn(`Failed to inline module scripts: ${err}`);
+        }
+      },
+    },
+  };
+}
+
+/**
+ * Astro integration stripping developer HTML comments (`<!-- ... -->`) from built
+ * pages. Source comments stay in `.astro` files for maintainers; visitors don't
+ * download them. Content inside `<script>`, `<style>`, `<pre>`, and `<textarea>` is left untouched.
+ * @returns {import('astro').AstroIntegration}
+ */
+function stripHtmlComments() {
+  return {
+    name: 'strip-html-comments',
+    hooks: {
+      'astro:build:done': async ({ dir, logger }) => {
+        const distDir = fileURLToPath(dir);
+        const re = /(<(script|style|pre|textarea)\b[\s\S]*?<\/\2>)|<!--(?!\[if)[\s\S]*?-->/gi;
+        let saved = 0;
+
+        /** @param {string} d */
+        const walk = (d) => {
+          for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
+            const full = path.join(d, entry.name);
+            if (entry.isDirectory()) walk(full);
+            else if (entry.name.endsWith('.html')) {
+              const html = fs.readFileSync(full, 'utf-8');
+              const stripped = html.replace(re, (match, keep) => keep ?? '');
+              if (stripped.length !== html.length) {
+                saved += html.length - stripped.length;
+                fs.writeFileSync(full, stripped);
+              }
+            }
+          }
+        };
+        walk(distDir);
+        if (saved > 0) logger.info(`Stripped ${(saved / 1024).toFixed(1)} KiB of HTML comments from built pages`);
+      },
+    },
+  };
+}
+
+/**
+ * Astro integration that fails the build if any built HTML page references a
+ * `/_astro/*.css` or `/_astro/*.js` asset missing from `dist/`. Guards against
+ * stale incremental-build (route cache) output pointing at superseded hashed bundles.
+ * @returns {import('astro').AstroIntegration}
+ */
+function verifyAssetReferences() {
+  return {
+    name: 'verify-asset-references',
+    hooks: {
+      'astro:build:done': async ({ dir, logger }) => {
+        const distDir = fileURLToPath(dir);
+        const refRe = /["'(](\/_astro\/[^"'()\s?#]+\.(?:css|js))/g;
+        /** @type {Map<string, string>} */
+        const missing = new Map();
+        let checked = 0;
+
+        /** @param {string} d */
+        const walk = (d) => {
+          for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
+            const full = path.join(d, entry.name);
+            if (entry.isDirectory()) walk(full);
+            else if (entry.name.endsWith('.html')) {
+              checked++;
+              for (const m of fs.readFileSync(full, 'utf-8').matchAll(refRe)) {
+                if (!missing.has(m[1]) && !fs.existsSync(path.join(distDir, m[1]))) {
+                  missing.set(m[1], path.relative(distDir, full));
+                }
+              }
+            }
+          }
+        };
+        walk(distDir);
+
+        if (missing.size > 0) {
+          const list = [...missing].map(([asset, page]) => `  ${asset} (first seen in ${page})`).join('\n');
+          throw new Error(
+            `Built HTML references ${missing.size} missing asset(s). Clear .cache/astro and rebuild:\n${list}`
+          );
+        }
+        logger.info(`All /_astro/ CSS and JS references resolve across ${checked} HTML page(s)`);
+      },
+    },
+  };
+}
+
 // https://astro.build/config
 export default defineConfig({
   cacheDir: './.cache/astro',
+  build: {
+    // Small per-page styles are inlined; the shared Tailwind bundle ships as one content-hashed,
+    // immutably cached file so it is downloaded once and reused across every navigation and prefetch.
+    inlineStylesheets: 'auto',
+  },
   experimental: {
     incrementalBuild: true,
   },
   vite: {
-    plugins: [tailwindcss()]
+    plugins: [
+      tailwindcss(),
+      {
+        name: 'dedupe-tailwind-color-mix-supports',
+        generateBundle(_, bundle) {
+          const re = /([^{}@]+)\{([a-z-]+):[^{};]+\}@supports \(color:color-mix\(in lab, red, red\)\)\{\1\{\2:([^{};]+)\}\}/g;
+          for (const chunk of Object.values(bundle)) {
+            if (chunk.type === 'asset' && chunk.fileName.endsWith('.css') && typeof chunk.source === 'string') {
+              chunk.source = chunk.source.replace(re, '$1{$2:$3}');
+            }
+          }
+        },
+      },
+    ],
+    build: {
+      target: ['chrome111', 'safari16.4', 'firefox113'],
+      cssTarget: ['chrome111', 'safari16.4', 'firefox113'],
+      // Inline page-specific style chunks (<16 KiB, e.g. BlogPost/Mermaid/Tooltips/YouTube) while
+      // keeping the shared site-wide Tailwind bundle (~102 KiB raw / ~12.4 KiB brotli) as a single
+      // content-hashed external stylesheet (`/_astro/styles.<hash>.css`).
+      assetsInlineLimit: 16384,
+      rollupOptions: {
+        output: {
+          assetFileNames: (assetInfo) => {
+            if (assetInfo.names?.some((n) => n.endsWith('.css'))) {
+              return '_astro/styles.[hash][extname]';
+            }
+            return '_astro/[name].[hash][extname]';
+          },
+        },
+      },
+    },
   },
   site: themeConfig.site.url,
   redirects: {
@@ -136,7 +318,7 @@ export default defineConfig({
       excludeLangs: ['mermaid'],
     },
     processor: unified({
-      remarkPlugins: [remarkAlerts, remarkYouTube],
+      remarkPlugins: [[remarkAlerts, { version: 'v2-note' }], remarkYouTube],
       rehypePlugins: [
         [
           rehypeMermaid,
@@ -176,7 +358,7 @@ export default defineConfig({
             },
           },
         ],
-        rehypeMermaidA11y,
+        [rehypeMermaidA11y, { version: 'v2-build-time-wrapper' }],
         [rehypeTechTooltips, { digest: TECH_TOOLTIPS_DIGEST }],
       ],
     }),
@@ -191,15 +373,21 @@ export default defineConfig({
         }
         const images = getImagesForUrl(item);
         if (images && images.length > 0) {
-          item.img = images;
+          // `img` is passed through to the `sitemap` serializer (image sitemap extension) but is not in `SitemapItem`
+          /** @type {import('sitemap').SitemapItemLoose} */ (item).img = images;
         }
         return item;
       }
     }),
     sitemapAlias(),
-    youtubeThumbnails()
+    youtubeThumbnails(),
+    inlineScripts(),
+    stripHtmlComments(),
+    verifyAssetReferences()
   ],
   prefetch: {
-    prefetchAll: true
+    prefetchAll: true,
+    // Prefetch on hover/focus only: pages are 200–400 KB uncompressed, so avoid viewport-wide prefetching.
+    defaultStrategy: 'hover',
   }
 });

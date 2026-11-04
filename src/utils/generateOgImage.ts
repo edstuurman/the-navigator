@@ -5,6 +5,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { themeConfig } from '../theme.config';
+import { formatSiteDate } from './dates';
 
 export type OgTheme =
   | 'amber'
@@ -279,12 +280,7 @@ function formatDate(d: Date | string | undefined): string | null {
   if (!d) return null;
   const dateObj = d instanceof Date ? d : new Date(d);
   if (isNaN(dateObj.getTime())) return null;
-  return dateObj.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    timeZone: 'UTC',
-  });
+  return formatSiteDate(dateObj);
 }
 
 function renderMetaIcon(icon: 'calendar' | 'clock' | 'pin' | 'refresh', color = '#f59e0b') {

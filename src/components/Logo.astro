@@ -1,10 +1,10 @@
 ---
+import type { HTMLAttributes } from 'astro/types';
 import { themeConfig } from '../theme.config';
 
-interface Props {
+interface Props extends Omit<HTMLAttributes<'svg'>, 'class'> {
   class?: string;
   text?: string;
-  [key: string]: any;
 }
 
 const {

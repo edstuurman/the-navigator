@@ -1,15 +1,19 @@
 ---
 title: "Part 1 — Customizing This Astro Theme: Separating Identity, Narrative, and Datasets from Templates"
-description: "A practical guide to cloning, running, and customizing this Astro 7.4 + Tailwind CSS v4 site for your own domain—without ever editing a single .astro template."
-pubDate: '2026-11-03T14:00:00'
+description: "A practical guide to cloning, running, and customizing this Astro 7.4 + Tailwind CSS v4 starter theme for your own domain—without ever editing a single .astro template."
+pubDate: '2026-11-03T18:00:00'
+updatedDate: '2026-11-05'
 tags: ["AstroJS", "Architecture", "Tailwind CSS", "Design", "Engineering"]
 sectionNav: "h1 to h2"
 ---
 
 > [!NOTE]
-> This is **Part 1** of a two-part setup guide. Part 1 covers **local setup, theme customization, and content authoring**. For optional multi-region AWS infrastructure, see [**Part 2 (Optional) — Provisioning & Deploying the Multi-Region AWS Stack with Terraform and GitLab CI/CD**](/blog/2026-11-03-part-2-provisioning-aws-mrap-cloudfront-terraform-gitlab-ci/).
+> This is **Part 1** of a three-part setup and deployment guide for **The Navigator** ([**GitHub**](https://github.com/edstuurman/the-navigator) · [**GitLab**](https://gitlab.com/src9061948/the-navigator) · [**Live Demo**](https://the-navigator-sage.vercel.app/)):
+> - **Part 1 (You are here)**: Local setup, identity & theme configuration, and content authoring.
+> - [**Part 2 (Optional) — Provisioning the Multi-Region AWS Stack with Terraform**](/blog/2026-11-03-part-2-provisioning-aws-mrap-cloudfront-terraform-gitlab-ci/): Multi-region S3 buckets, MRAP, CloudFront SigV4a OAC, ACM SSL, and Route 53 DNS via GitLab CI, GitHub Actions, or Local CLI.
+> - [**Part 3 — Automated CI/CD Pipelines, Starter Dry-Run Mode & Deploying to Any Static Host**](/blog/2026-11-03-part-3-ci-cd-pipelines-dry-run-mode-and-static-hosting/): Zero-config deployment to Vercel/Netlify/Cloudflare Pages, dual GitHub Actions & GitLab CI dry-run pipelines, and two-tier S3/CloudFront delta sync.
 
-This [Astro 7.4](/tags/astrojs/) and [Tailwind CSS v4](/tags/tailwind-css/) theme separates site configuration, Markdown content collections, and typed datasets from presentation templates. You can customize your identity, UI behavior, navigation, page copy, articles, career timeline, and photography—and even toggle individual features like the theme attribution link or "Powered by" links in the footer—without editing `.astro` files in `src/pages/` or `src/components/`.
+This [Astro 7.4](/tags/astrojs/) and [Tailwind CSS v4](/tags/tailwind-css/) theme separates site configuration, Markdown content collections, and typed datasets from presentation templates. You can customize your identity, UI behavior, navigation, page copy, articles, career timeline, and photography—and even toggle individual features like the theme attribution link, optional Umami analytics, or "Powered by" links in the footer—without editing `.astro` files in `src/pages/` or `src/components/`.
 
 ---
 
@@ -21,7 +25,7 @@ The `src/` directory is organized into four layers:
 flowchart TD
     subgraph Configs["1. Configuration Layer (src/*.config.ts)"]
         SC["src/site.config.ts<br/>(Identity, Author, Avatar, Socials)"]
-        TC["src/theme.config.ts<br/>(Logo, Nav, Pagination, Tooltips, OG, Footer)"]
+        TC["src/theme.config.ts<br/>(Logo, Integrations, Nav, Pagination, Tooltips, OG, Footer)"]
         CC["src/content.config.ts<br/>(Zod Content Schemas)"]
     end
 
@@ -57,20 +61,32 @@ flowchart TD
 
 ## Step 1: Local Prerequisites & Quickstart
 
-To run and build the site locally, install **Node.js `>= 20`** and **Playwright's Chromium binary** (used by `rehype-mermaid` at build time to compile Markdown `mermaid` code fences into responsive inline SVGs with zero client-side JavaScript).
+Before cloning and running the theme, make sure you have:
+
+- **Node.js `>= 20`** (tested on Node 22 / 25) and `npm`
+- **Playwright Chromium** (required at build time by `rehype-mermaid` to compile Markdown `mermaid` code fences into responsive inline SVGs with zero client-side JavaScript)
+- **A GitLab or GitHub account (free)** (for repository hosting and automated CI/CD pipelines via `.gitlab-ci.yml` or `.github/workflows/deploy.yml`)
+- **A Formspree account (free)** (for the static `/contact/` form submission endpoint configured in `src/theme.config.ts`)
+- *(Optional)* **An Umami account** ([umami.is](https://umami.is/) or self-hosted) if you want privacy-friendly, cookie-free analytics (`integrations.umami` in `src/theme.config.ts`)
+
+Clone the repository from either **GitHub** or **GitLab** and start the development server:
 
 ```bash
-# 1. Install dependencies from package-lock.json
+# 1. Clone from GitHub (or GitLab: https://gitlab.com/src9061948/the-navigator.git)
+git clone https://github.com/edstuurman/the-navigator.git
+cd the-navigator
+
+# 2. Install dependencies from package-lock.json
 npm ci
 
-# 2. Install headless Chromium for build-time Mermaid SVG rendering
+# 3. Install headless Chromium for build-time Mermaid SVG rendering
 npx playwright install chromium
 
-# 3. Start the local dev server at http://localhost:4321
+# 4. Start the local dev server at http://localhost:4321
 npm run dev
 ```
 
-To run a full production build (generating static HTML, responsive WebP/AVIF photography variants, and build-time Satori Open Graph PNG cards):
+To run a full production build (generating static HTML, responsive WebP/AVIF photography variants, and build-time Satori Open Graph PNG cards into `./dist/`):
 
 ```bash
 npm run build
@@ -84,38 +100,59 @@ npm run preview
 
 ## Step 2: Configure Your Identity (`src/site.config.ts`)
 
-`src/site.config.ts` defines site-wide metadata, author details, and social profiles:
+`src/site.config.ts` is the single source of truth for site-wide metadata, author details, headshots, and social profiles:
 
 ```ts
-export const siteConfig: SiteConfig = {
+export const siteConfig: SiteIdentityConfig = {
   site: {
     url: 'https://www.example.com',
     domain: 'example.com',
-    title: 'Jane Doe',
+    title: 'Alex Mercer',
     description:
-      'Jane Doe — Systems & Cloud Architect. Notes on distributed systems, infrastructure automation, and photography.',
-    keywords: ['Jane Doe', 'Cloud Architecture', 'Infrastructure', 'Linux', 'Terraform'],
+      'Alex Mercer — Principal Cloud & Platform Architect. Distributed edge systems, multi-region AWS infrastructure, Terraform automation, and architectural photography.',
     locale: 'en_US',
-    defaultTheme: 'dark', // 'dark' | 'light' | 'system'
+    language: 'en-us',
+    timeZone: 'America/Los_Angeles',
+    defaultKeywords: [
+      'Alex Mercer',
+      'example.com',
+      'Platform Architect',
+      'Site Reliability Engineering',
+      'Terraform',
+      'AWS',
+      'CloudFront',
+      'Astro',
+      'Tailwind CSS',
+    ],
   },
+
   author: {
-    name: 'Jane Doe',
-    givenName: 'Jane',
-    familyName: 'Doe',
-    role: 'Systems & Cloud Architect',
-    jobTitle: 'Principal Systems Architect',
-    location: 'Tokyo',
-    flagEmoji: '🇯🇵',
-    email: 'jane@example.com',
-    avatar: 'author.jpg',     // Small circular chip on blog & log cards
-    aboutImage: 'author.jpg', // Large portrait on /about/ (can be a separate photo!)
-    pronouns: 'she/her',
+    name: 'Alex Mercer',
+    alternateName: 'Alexander Mercer',
+    avatar: 'author.jpg',     // Small circular chip on blog & log cards (src/images/author.jpg)
+    aboutImage: 'author.jpg', // Large portrait on /about/ (can be a separate image in src/images/)
+    tagline: 'Cloud & Platform Architecture',
+    jobTitle: 'Principal Cloud & Platform Architect',
+    bio: 'Principal Cloud & Platform Architect specializing in multi-region edge infrastructure, declarative Terraform automation, high-throughput distributed systems, and architectural photography.',
+    location: 'San Francisco, CA',
+    email: 'alex@example.com',
+    knowsAbout: [
+      'Cloud Architecture',
+      'AWS Multi-Region Infrastructure',
+      'Terraform',
+      'Site Reliability Engineering',
+      'Linux Systems',
+      'Edge Networking',
+      'Static Web Architecture',
+    ],
   },
+
   socials: {
-    linkedin: { url: 'https://www.linkedin.com/in/jane-doe/', label: 'LinkedIn' },
-    github:   { url: 'https://github.com/janedoe', label: 'GitHub' },
-    gitlab:   { url: 'https://gitlab.com/janedoe', label: 'GitLab' },
-    instagram:{ url: '', label: 'Instagram' }, // Leave empty ('') to hide automatically
+    github: 'https://github.com',
+    gitlab: 'https://gitlab.com',
+    linkedin: 'https://www.linkedin.com',
+    instagram: 'https://www.instagram.com',
+    // Optional: twitter, bluesky, mastodon (omit or leave empty to hide)
   },
 };
 ```
@@ -132,26 +169,90 @@ Updating `src/site.config.ts` automatically cascades across the entire build:
 
 `src/theme.config.ts` controls visual branding, third-party integrations, navigation, pagination, and build-time enhancements:
 
-1. **Header SVG Wordmark (`logo`)**: Replace the inline SVG paths or adjust `viewBox`, `width`, and `height` for the top navbar logo.
+```ts
+export const themeMechanics: ThemeMechanicsConfig = {
+  logo: {
+    text: 'ALEX MERCER',
+    ariaLabel: siteConfig.site.title,
+    letterSpacing: '0.22em',
+    fontSize: 14,
+    showCompass: true,
+    compassAngle: 42,
+  },
+
+  integrations: {
+    formspree: {
+      endpoint: 'https://formspree.io/f/your-form-id',
+    },
+    umami: {
+      enabled: false,
+      scriptUrl: 'https://cloud.umami.is/script.js',
+      websiteId: '',
+    },
+  },
+
+  navigation: {
+    items: [
+      { label: 'Home', href: '/', enabled: true },
+      { label: 'About', href: '/about/', enabled: true },
+      { label: 'Now', href: '/now/', enabled: true },
+      { label: 'Blog', href: '/blog/', enabled: true, activePrefixes: ['/tags'] },
+      { label: 'Photography', href: '/photography/', enabled: true },
+      { label: 'Log', href: '/log/', enabled: true },
+      { label: 'Contact', href: '/contact/', enabled: true },
+    ],
+  },
+
+  pagination: {
+    olderBlogsCount: 20,
+    logCount: 20,
+    galleryCount: 50,
+    homepageCarouselCount: 7,
+  },
+
+  openGraph: {
+    brandLabel: 'ALEX MERCER',
+    locationPinLabel: siteConfig.author.location,
+  },
+
+  tooltips: {
+    enabled: true,
+    autoLink: 'first', // 'first' | 'all' | 'off'
+  },
+
+  footer: {
+    siteColumnTitle: 'Example.com',
+    showPoweredBy: true,
+    poweredByLinks: [
+      { label: 'AWS S3', href: 'https://aws.amazon.com/s3/', icon: 's3' },
+      { label: 'AWS MRAP', href: 'https://aws.amazon.com/s3/features/multi-region-access-points/', icon: 'mrap' },
+      { label: 'AWS CloudFront', href: 'https://aws.amazon.com/cloudfront/', icon: 'cloudfront' },
+      { label: 'Colophon', href: '/blog/2026-11-03-part-2-provisioning-aws-mrap-cloudfront-terraform-gitlab-ci/', icon: 'info', highlight: true },
+    ],
+    showThemeAttribution: false, // Set to `true` to display the optional footer credit
+  },
+};
+```
+
+Key options in `src/theme.config.ts`:
+1. **Header SVG Wordmark (`logo`)**: Customize `text`, `letterSpacing`, `fontSize`, and whether the angled compass needle emblem (`showCompass`, `compassAngle`) appears on the underline.
 2. **Third-Party Integrations (`integrations`)**:
-   - **Formspree (`formspreeEndpoint`)**: Paste your Formspree form endpoint URL to activate the interactive contact forms on [`/contact/`](/contact/) and [`/about/#contact`](/about/#contact) (or set to `""` to disable).
-   - **Umami Analytics (`analytics`)**: Toggle `enabled: true/false` and set your script URL and `websiteId`.
-3. **Navigation & Pagination (`navigation`, `pagination`)**: Configure top navbar links and item counts per page for the blog archive (`olderBlogsCount`), log stream (`logCount`), photo gallery (`galleryCount`), and homepage carousels (`homepageCarouselCount`).
-4. **Open Graph Card Branding (`openGraph`)**: Customize the badge label and footer text rendered onto every 1200×630 PNG social card generated by Satori at `/og/*.png`.
-5. **Automatic Technical Tooltips (`tooltips`)**:
-   - `enabled: true`
-   - `autoLink: 'first'` (`'first' | 'all' | 'off'`) — When set to `'first'`, the build-time Rehype plugin (`rehype-tech-tooltips.mjs`) scans your Markdown articles in top-to-bottom reading order and automatically wraps **only the first occurrence** of any technical acronym found in `src/data/techTerms.ts` into an accessible glassmorphic tooltip card (both in light and dark mode), leaving subsequent mentions as clean plain text.
-6. **Footer Toggles (`footer`)**: Customize the footer navigation columns, copyright notice, `showPoweredBy` badge, and `showThemeAttribution` toggle.
+   - **Formspree (`integrations.formspree.endpoint`)**: Paste your Formspree form endpoint URL (`https://formspree.io/f/...`) to activate the contact forms on [`/contact/`](/contact/) and [`/about/#contact`](/about/#contact).
+   - **Umami Analytics (`integrations.umami`)**: Optional privacy-friendly analytics. Set `enabled: true` and provide your `websiteId` (and custom `scriptUrl` if self-hosted), or leave `enabled: false` to ship zero analytics scripts.
+3. **Navigation & Pagination (`navigation`, `pagination`)**: Toggle any top-level route with `enabled: true | false` and set item counts per page for `/blog/`, `/log/`, `/photography/`, and the homepage carousels.
+4. **Open Graph Card Branding (`openGraph`)**: Customize the `brandLabel` and `locationPinLabel` rendered onto every 1200×630 PNG social card generated by Satori at `/og/*.png`.
+5. **Automatic Technical Tooltips (`tooltips`)**: When `autoLink: 'first'` is enabled, the build-time Rehype plugin (`src/plugins/rehype-tech-tooltips.mjs`) scans your Markdown articles in top-to-bottom reading order and automatically wraps **only the first occurrence** of any technical acronym found in `src/data/techTerms.ts` into an accessible glassmorphic tooltip card, leaving subsequent mentions as clean plain text.
+6. **Footer Toggles (`footer`)**: Customize `siteColumnTitle`, `showPoweredBy`, `poweredByLinks`, and `showThemeAttribution`.
 
 ---
 
 ## Step 4: Edit Page Titles, Descriptions & Personal Narrative (`src/content/pages/`)
 
-Every top-level page (`/` , `/about/`, `/now/`, `/contact/`, `/blog/`, `/log/`, `/photography/`, and `/tags/`) loads its `pageTitle`, meta `description`, headings, structured cards, and personal narrative prose from Markdown files in **`src/content/pages/`**:
+Every top-level page (`/`, `/about/`, `/now/`, `/contact/`, `/blog/`, `/log/`, `/photography/`, and `/tags/`) loads its `pageTitle`, meta `description`, headings, structured cards, and personal narrative prose from Markdown files in **`src/content/pages/`**:
 
 | File | Route | What You Customize Here |
 | :--- | :--- | :--- |
-| `src/content/pages/home.md` | [`/`](/) | Homepage `pageTitle`, `description`, Intro hero card (`eyebrow`, `heading`, two-column blurb, CTA link), and section headers for the Photo Roll, Blog, and Log carousels. |
+| `src/content/pages/home.md` | [`/`](/) | Homepage `pageTitle`, `description`, Intro hero card (`eyebrow`, `heading`, two-column blurb, CTA link), optional `setupGuide` quickstart cards, and section headers for the Blog, Photo Roll, and Log carousels. |
 | `src/content/pages/about.md` | [`/about/`](/about/) | About `pageTitle`, `description`, greeting line, **Markdown body** (your personal biography paragraphs), spoken `languages` badges (`fluent`, `native`, `beginner`), `faq` accordion groups & answers, and contact form prompt. |
 | `src/content/pages/now.md` | [`/now/`](/now/) | Your `/now` snapshot (`lastUpdated`, `introHtml`, and `nowSections` cards for Location, Engineering Focus, Homelab, Offline life, and Reading). Supports inline `<abbr>` tags for technical tooltips. |
 | `src/content/pages/contact.md` | [`/contact/`](/contact/) | Contact `pageTitle`, `description`, heading, **Markdown body** (intro paragraph), timezone/response-time labels, and form header. |
@@ -161,6 +262,9 @@ Every top-level page (`/` , `/about/`, `/now/`, `/contact/`, `/blog/`, `/log/`, 
 | `src/content/pages/tags.md` | [`/tags/`](/tags/) | Topic & tag directory `pageTitle`, `description`, eyebrow, heading, and subtitle. |
 
 Because these files are validated by Zod in `src/content.config.ts`, Astro will immediately catch any missing or mistyped frontmatter fields during `npm run dev` or `npm run build`.
+
+> [!TIP]
+> **Toggling Off the Starter Quickstart Banner on `/` (`setupGuide.enabled: false`)**: By default, `src/content/pages/home.md` includes a `setupGuide` block with `enabled: true` that displays the 3-step onboarding cards inside the homepage hero section. Once you finish setting up your site, simply set `enabled: false` under `setupGuide:` in `src/content/pages/home.md` (or delete the `setupGuide:` block) and the hero card automatically collapses to a clean personal introduction.
 
 ---
 
@@ -193,7 +297,7 @@ sectionNav: "h1 to h2"
 ```
 
 - **No `author` line needed**: Defaults automatically to `siteConfig.author.name`.
-- **Floating Section Navigation (`sectionNav`)**: Adding `sectionNav: "h1 to h2"` (or `true`) automatically extracts your article's headings at build time and populates the floating sub-navigation pill bar.
+- **Floating Section Navigation (`sectionNav`)**: Adding `sectionNav: "h1 to h2"` (or `true`) automatically extracts your article's headings at build time and populates the floating sub-navigation pill bar (docked at the top on desktop and bottom on mobile).
 - **Rich Markdown Extensions**:
   - **GitHub Alerts**: Use `> [!NOTE]`, `> [!TIP]`, `> [!IMPORTANT]`, `> [!WARNING]`, or `> [!CAUTION]`.
   - **Mermaid Diagrams**: Standard ` ```mermaid ` fences compile at build time into theme-adaptive inline SVGs.
@@ -211,9 +315,9 @@ sectionNav: "h1 to h2"
 
 ---
 
-## Next Up: Deploying Your Static Build
+## Next Up: Choose Your Deployment Path
 
-Once `npm run build` completes, the static site is output to `./dist/`.
+Once `npm run build` completes, the entire static site is output to `./dist/`. From here, you can choose between two paths:
 
-The `./dist/` directory can be deployed to any static hosting provider. To provision and deploy using the included multi-region <abbr>AWS</abbr> Terraform configuration and GitLab CI/CD pipeline, continue to [**Part 2 (Optional) — Provisioning & Deploying the Multi-Region AWS Stack with Terraform and GitLab CI/CD**](/blog/2026-11-03-part-2-provisioning-aws-mrap-cloudfront-terraform-gitlab-ci/).
-
+1. **Provision the Multi-Region AWS S3 MRAP + CloudFront Stack (Optional)**: Continue to [**Part 2 (Optional) — Provisioning the Multi-Region AWS Stack with Terraform (GitLab CI, GitHub Actions & Local CLI)**](/blog/2026-11-03-part-2-provisioning-aws-mrap-cloudfront-terraform-gitlab-ci/).
+2. **Deploy to Any Static Host (Vercel, Netlify, Cloudflare Pages) or Explore the CI/CD Pipelines**: Jump straight to [**Part 3 — Automated CI/CD Pipelines, Starter Dry-Run Mode & Deploying to Any Static Host**](/blog/2026-11-03-part-3-ci-cd-pipelines-dry-run-mode-and-static-hosting/).

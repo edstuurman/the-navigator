@@ -66,6 +66,11 @@ data "aws_cloudfront_cache_policy" "caching_optimized" {
   name = "Managed-CachingOptimized"
 }
 
+# AWS Managed Response Headers Policy: SecurityHeadersPolicy (67f7725c-6f97-4210-82d7-5512b31e9d03)
+data "aws_cloudfront_response_headers_policy" "security_headers" {
+  name = "Managed-SecurityHeadersPolicy"
+}
+
 # ------------------------------------------------------------------------------
 # CloudFront Distribution
 # ------------------------------------------------------------------------------
@@ -96,12 +101,13 @@ resource "aws_cloudfront_distribution" "mrap_distribution" {
   }
 
   default_cache_behavior {
-    target_origin_id       = "mrap_origin_id"
-    allowed_methods        = ["GET", "HEAD", "OPTIONS"]
-    cached_methods         = ["GET", "HEAD", "OPTIONS"]
-    cache_policy_id        = data.aws_cloudfront_cache_policy.caching_optimized.id
-    compress               = true
-    viewer_protocol_policy = "redirect-to-https"
+    target_origin_id           = "mrap_origin_id"
+    allowed_methods            = ["GET", "HEAD", "OPTIONS"]
+    cached_methods             = ["GET", "HEAD", "OPTIONS"]
+    cache_policy_id            = data.aws_cloudfront_cache_policy.caching_optimized.id
+    response_headers_policy_id = data.aws_cloudfront_response_headers_policy.security_headers.id
+    compress                   = true
+    viewer_protocol_policy     = "redirect-to-https"
 
     function_association {
       event_type   = "viewer-request"

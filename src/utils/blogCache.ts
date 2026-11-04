@@ -1,5 +1,32 @@
 import crypto from 'node:crypto';
+import fs from 'node:fs';
 import type { CollectionEntry } from 'astro:content';
+
+const BLOG_TEMPLATE_DIGEST = (() => {
+  const h = crypto.createHash('sha256');
+  for (const p of [
+    'src/layouts/BlogPost.astro',
+    'src/layouts/BaseLayout.astro',
+    'src/components/Footer.astro',
+    'src/components/SectionNav.astro',
+    'src/scripts/section-nav.ts',
+    'src/scripts/tech-tooltips.ts',
+    'src/scripts/mermaid-zoom.ts',
+    'src/styles/global.css',
+    'src/plugins/remark-alerts.mjs',
+    'src/plugins/rehype-mermaid-a11y.mjs',
+    'src/components/scripts/TechTooltipsScript.astro',
+    'src/components/scripts/MermaidZoomScript.astro',
+    'src/components/scripts/YouTubeEmbedScript.astro',
+  ]) {
+    try {
+      h.update(fs.readFileSync(p));
+    } catch {
+      // ignore if path unavailable
+    }
+  }
+  return h.digest('hex');
+})();
 
 export type AdjacentPost = {
   id: string;
@@ -9,7 +36,7 @@ export type AdjacentPost = {
 
 /**
  * Computes a deterministic cache key for an individual blog post route.
- * Changes only when the post body, metadata, or adjacent navigation cards change.
+ * Changes when the post body, metadata, adjacent navigation cards, or layout templates change.
  */
 export function computeBlogCacheKey(
   post: CollectionEntry<'blog'>,
@@ -17,6 +44,7 @@ export function computeBlogCacheKey(
   prevPost: AdjacentPost
 ): string {
   const hash = crypto.createHash('sha256');
+  hash.update(BLOG_TEMPLATE_DIGEST);
   hash.update(post.id);
   hash.update(post.body || '');
   hash.update(post.data.title || '');

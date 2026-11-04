@@ -1,6 +1,11 @@
-import { defineCollection, z } from 'astro:content';
+import { defineCollection } from 'astro:content';
+import { z } from 'astro/zod';
 import { glob } from 'astro/loaders';
 import { siteConfig } from './site.config';
+import { parseSiteDate } from './utils/dates';
+
+/** Date field pinned to `siteConfig.site.timeZone` when the frontmatter value has no UTC offset. */
+const siteDate = () => z.preprocess((value) => parseSiteDate(value), z.date());
 
 const sectionDepthSchema = z.union([
 	z.string(),
@@ -35,8 +40,8 @@ const blog = defineCollection({
 			title: z.string(),
 			description: z.string(),
 			// Transform string to Date object
-			pubDate: z.coerce.date(),
-			updatedDate: z.coerce.date().optional(),
+			pubDate: siteDate(),
+			updatedDate: siteDate().optional(),
 			heroImage: image().optional(),
 			heroImageAlt: z.string().optional(),
 			author: z.string().optional().default(siteConfig.author.name),
@@ -55,7 +60,7 @@ const log = defineCollection({
 	loader: glob({ base: './src/content/log', pattern: '**/*.{md,mdx}' }),
 	schema: z.object({
 		title: z.string(),
-		date: z.coerce.date(),
+		date: siteDate(),
 		type: z.enum(['note', 'changelog']).optional().default('note'),
 		tags: z.array(z.string()).optional().default([]),
 	}),
@@ -68,7 +73,7 @@ const photography = defineCollection({
 		id: z.number(),
 		filename: z.string(),
 		title: z.string(),
-		pubDate: z.coerce.date(),
+		pubDate: siteDate(),
 		dateFormatted: z.string().optional(),
 		category: z.string(),
 		location: z.string(),
@@ -103,6 +108,24 @@ const pages = defineCollection({
 				rightColumn: z.string(),
 				ctaLabel: z.string(),
 				ctaHref: z.string(),
+			})
+			.optional(),
+		setupGuide: z
+			.object({
+				enabled: z.boolean().optional().default(true),
+				eyebrow: z.string(),
+				heading: z.string(),
+				subtitle: z.string().optional(),
+				steps: z.array(
+					z.object({
+						step: z.string(),
+						badge: z.string().optional(),
+						title: z.string(),
+						description: z.string(),
+						href: z.string(),
+						ctaLabel: z.string().optional(),
+					}),
+				),
 			})
 			.optional(),
 		photosSection: homeSectionHeaderSchema.optional(),

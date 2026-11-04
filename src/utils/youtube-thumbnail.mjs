@@ -26,8 +26,8 @@ export const THUMB_CACHE_DIR = path.resolve(process.cwd(), '.cache/youtube-thumb
 export const THUMB_PUBLIC_PREFIX = '/yt-thumbs';
 
 const FETCH_TIMEOUT_MS = 8000;
-const THUMB_WIDTH = 960;
-const WEBP_QUALITY = 72;
+const THUMB_WIDTH = 640;
+const WEBP_QUALITY = 70;
 /** `maxresdefault` is 16:9 but missing for some videos; `hqdefault` always exists. */
 const SOURCE_VARIANTS = ['maxresdefault', 'hqdefault'];
 

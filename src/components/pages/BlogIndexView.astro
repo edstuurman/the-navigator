@@ -18,7 +18,7 @@ interface Props {
 
 const { currentPage = 1 } = Astro.props;
 
-function getArticleIntroParagraphs(body: string): string[] {
+function getArticleIntroParagraphs(body: string | undefined): string[] {
   if (!body) return [];
   const cleanBody = body
     .replace(/^---[\s\S]*?---\s*/, '')
@@ -150,14 +150,14 @@ const blogSections = [
                         <TagList tags={post.data.tags} limit={3} />
                       </div>
                       <div class="flex items-center gap-3">
-                        <span class="inline-flex items-center gap-1 text-gray-400 dark:text-gray-500">
+                        <span class="inline-flex items-center gap-1 text-gray-500 dark:text-gray-400">
                           <svg class="size-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
                             <circle cx="12" cy="12" r="10" />
                             <polyline points="12 6 12 12 16 14" />
                           </svg>
                           {getReadingTime(post.body)}
                         </span>
-                        <span class="inline-flex items-center gap-1 text-sm font-semibold text-amber-600 dark:text-amber-500 group-hover:text-amber-500 dark:group-hover:text-amber-400">
+                        <span class="inline-flex items-center gap-1 text-sm font-semibold text-amber-700 dark:text-amber-500 group-hover:text-amber-600 dark:group-hover:text-amber-400">
                           <span>Read</span>
                           <span aria-hidden="true">&rarr;</span>
                         </span>
@@ -173,7 +173,6 @@ const blogSections = [
           <div class="mx-auto w-full max-w-2xl max-lg:border-t max-lg:border-gray-200/80 dark:max-lg:border-gray-800 max-lg:pt-12 lg:col-span-6 lg:max-w-none">
             <div id="blog-right-col" class="flex flex-col gap-10">
               {rightColPosts.map(({ post, video }, rightIdx) => {
-                const postHasVideo = Boolean(video);
                 return (
                 <article class="flex max-w-xl flex-1 flex-col">
                   <PostDateMeta
@@ -207,7 +206,7 @@ const blogSections = [
                         <div class="relative z-10 min-w-0 flex-1 overflow-hidden">
                           <TagList tags={post.data.tags} limit={3} singleLine={true} />
                         </div>
-                        <span class="inline-flex shrink-0 items-center gap-1 text-gray-400 dark:text-gray-500">
+                        <span class="inline-flex shrink-0 items-center gap-1 text-gray-500 dark:text-gray-400">
                           <svg class="size-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
                             <circle cx="12" cy="12" r="10" />
                             <polyline points="12 6 12 12 16 14" />
@@ -251,7 +250,7 @@ const blogSections = [
           <div class="mt-4">
             <a
               href="/blog/"
-              class="inline-flex items-center gap-1.5 text-sm font-semibold text-amber-600 dark:text-amber-400 hover:text-amber-500 dark:hover:text-amber-300 transition-colors"
+              class="inline-flex items-center gap-1.5 text-sm font-semibold text-amber-700 dark:text-amber-400 hover:text-amber-600 dark:hover:text-amber-300 transition-colors"
             >
               <span aria-hidden="true">&larr;</span>
               <span>Back to latest featured articles</span>
@@ -270,7 +269,6 @@ const blogSections = [
           ></div>
 
           {paginatedOlderPostsWithVideo.map(({ post, video }) => {
-            const postHasVideo = Boolean(video);
             return (
             <article class="relative group/entry">
               <!-- Timeline dot node aligned with the date -->
@@ -320,14 +318,14 @@ const blogSections = [
                           <TagList tags={post.data.tags} limit={4} />
                         </div>
                         <div class="flex items-center gap-3">
-                          <span class="inline-flex items-center gap-1 text-gray-400 dark:text-gray-500 shrink-0">
+                          <span class="inline-flex items-center gap-1 text-gray-500 dark:text-gray-400 shrink-0">
                             <svg class="size-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
                               <circle cx="12" cy="12" r="10" />
                               <polyline points="12 6 12 12 16 14" />
                             </svg>
                             {getReadingTime(post.body)}
                           </span>
-                          <span class="text-sm font-semibold text-amber-600 dark:text-amber-500 group-hover:text-amber-500 dark:group-hover:text-amber-400 inline-flex items-center gap-1">
+                          <span class="text-sm font-semibold text-amber-700 dark:text-amber-500 group-hover:text-amber-600 dark:group-hover:text-amber-400 inline-flex items-center gap-1">
                             <span>Read</span>
                             <span aria-hidden="true">&rarr;</span>
                           </span>
@@ -355,14 +353,14 @@ const blogSections = [
                         <TagList tags={post.data.tags} limit={4} />
                       </div>
                       <div class="flex items-center gap-3">
-                        <span class="inline-flex items-center gap-1 text-gray-400 dark:text-gray-500 shrink-0">
+                        <span class="inline-flex items-center gap-1 text-gray-500 dark:text-gray-400 shrink-0">
                           <svg class="size-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
                             <circle cx="12" cy="12" r="10" />
                             <polyline points="12 6 12 12 16 14" />
                           </svg>
                           {getReadingTime(post.body)}
                         </span>
-                        <span class="text-sm font-semibold text-amber-600 dark:text-amber-500 group-hover:text-amber-500 dark:group-hover:text-amber-400 inline-flex items-center gap-1">
+                        <span class="text-sm font-semibold text-amber-700 dark:text-amber-500 group-hover:text-amber-600 dark:group-hover:text-amber-400 inline-flex items-center gap-1">
                           <span>Read</span>
                           <span aria-hidden="true">&rarr;</span>
                         </span>
@@ -397,22 +395,27 @@ const blogSections = [
     <script>
     function setupFeaturedCardFitter() {
       const container = document.getElementById('featured-preview-container');
-      const rightCol = document.getElementById('blog-right-col');
+      const rightColEl = document.getElementById('blog-right-col');
       const leftArticle = document.getElementById('featured-article');
-      if (!rightCol || !leftArticle) return;
+      if (!rightColEl || !leftArticle) return;
+      const rightCol: HTMLElement = rightColEl;
 
-      const leftCard = leftArticle.querySelector<HTMLElement>('.border-beam-card');
-      if (!leftCard) return;
+      const leftCardEl = leftArticle.querySelector<HTMLElement>('.border-beam-card');
+      if (!leftCardEl) return;
+      const leftCard: HTMLElement = leftCardEl;
 
       const desc = leftCard.querySelector<HTMLElement>('#featured-desc');
       const paras = container
         ? Array.from(container.querySelectorAll<HTMLElement>('[data-preview-idx]'))
         : [];
 
+      let lastRightHeight = 0;
+
       function fitFeaturedCard() {
         const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
 
         if (!isDesktop) {
+          if (!leftCard.style.height) return;
           leftCard.style.height = '';
           rightCol.style.minHeight = '';
           if (desc) {
@@ -433,37 +436,46 @@ const blogSections = [
           return;
         }
 
-        // Reset right column minHeight first to measure its natural height
-        rightCol.style.minHeight = '';
-
         const leftDate = leftArticle?.firstElementChild as HTMLElement | null;
         const leftAuthor = leftArticle?.lastElementChild as HTMLElement | null;
         const footer = document.getElementById('featured-footer');
         const poster = leftCard.querySelector<HTMLElement>('.youtube-poster-embed');
         const title = leftCard.querySelector<HTMLElement>('h2');
 
-        // Reset desc styling first to measure its natural height
-        if (desc) {
+        // 1. Batch all preparatory DOM resets before reading layout metrics
+        if (rightCol.style.minHeight) rightCol.style.minHeight = '';
+        if (desc && desc.style.webkitLineClamp) {
           desc.style.display = 'block';
           desc.style.webkitLineClamp = 'none';
           desc.style.overflow = '';
           desc.style.webkitBoxOrient = '';
         }
+        if (container && paras.length > 0) {
+          container.style.display = '';
+          paras.forEach((p) => {
+            p.style.display = 'block';
+            p.style.webkitLineClamp = 'none';
+            p.style.overflow = '';
+            p.style.webkitBoxOrient = '';
+          });
+        }
 
+        // 2. Single batched geometric read pass (1 layout calculation total)
         const rightHeight = rightCol?.offsetHeight ?? 0;
+        lastRightHeight = rightHeight;
         const leftDateHeight = leftDate ? leftDate.offsetHeight : 0;
         const leftAuthorHeight = leftAuthor ? leftAuthor.offsetHeight : 0;
         const leftChromeHeight = leftDateHeight + 12 + leftAuthorHeight + 24;
-
         const posterHeight = poster ? poster.offsetHeight : 0;
         const titleHeight = title ? title.offsetHeight : 0;
         const footerHeight = footer ? footer.offsetHeight : 0;
         const descHeight = desc ? desc.offsetHeight : 0;
+        const paraHeights = paras.map((p) => p.offsetHeight);
+
         const cardPaddingY = 48; // p-6 top (24px) + bottom (24px)
         const titleMarginBottom = 16; // mt-4
         const footerMarginTop = 24; // mt-6
 
-        // Minimum height needed by the left card (especially when left card has a video poster)
         const minLeftCardHeight =
           posterHeight +
           cardPaddingY +
@@ -475,9 +487,9 @@ const blogSections = [
         const rightBasedCardHeight = rightHeight - leftChromeHeight;
         const targetCardHeight = Math.max(rightBasedCardHeight, minLeftCardHeight);
 
+        // 3. Single batched DOM write pass
         leftCard.style.height = `${targetCardHeight}px`;
 
-        // If the left card (e.g. with a video poster) is taller than the right column, stretch the right column to match
         if (minLeftCardHeight > rightBasedCardHeight) {
           rightCol.style.minHeight = `${targetCardHeight + leftChromeHeight}px`;
         }
@@ -493,7 +505,7 @@ const blogSections = [
 
         const descLineHeight = 28; // text-base/7
         const paraLineHeight = 24; // text-sm/6
-        const previewBorderAndGap = 33; // mt-4 (16px) + pt-4 (16px) + 1px border
+        const previewBorderAndGap = 35; // mt-4 (16px) + pt-4 (16px) + 1px border + 2px subpixel buffer
 
         if (availableTextHeight <= 0) {
           if (desc) desc.style.display = 'none';
@@ -502,36 +514,21 @@ const blogSections = [
         }
 
         if (descHeight <= availableTextHeight) {
-          // Description fits completely
           if (desc) desc.style.display = 'block';
           const remainingForPreview = availableTextHeight - descHeight - previewBorderAndGap;
 
           if (container && paras.length > 0 && remainingForPreview >= paraLineHeight * 1.5) {
-            container.style.display = '';
-            paras.forEach((p) => {
-              p.style.display = 'none';
-              p.style.webkitLineClamp = '';
-              p.style.overflow = '';
-              p.style.webkitBoxOrient = '';
-            });
-
             let usedHeight = 0;
             const paraGap = 12;
-            let lastVisibleIdx = -1;
-            let lastVisibleLines = 0;
 
             for (let i = 0; i < paras.length; i++) {
               const p = paras[i];
-              p.style.display = 'block';
-              p.style.webkitLineClamp = 'none';
-              const naturalHeight = p.offsetHeight;
+              const naturalHeight = paraHeights[i];
               const gap = i > 0 ? paraGap : 0;
               const remaining = remainingForPreview - usedHeight - gap;
 
               if (naturalHeight <= remaining) {
                 usedHeight += naturalHeight + gap;
-                lastVisibleIdx = i;
-                lastVisibleLines = Math.round(naturalHeight / paraLineHeight);
               } else {
                 const linesFit = Math.floor(remaining / paraLineHeight);
                 if (linesFit >= 1) {
@@ -539,8 +536,6 @@ const blogSections = [
                   p.style.webkitBoxOrient = 'vertical';
                   p.style.webkitLineClamp = String(linesFit);
                   p.style.overflow = 'hidden';
-                  lastVisibleIdx = i;
-                  lastVisibleLines = linesFit;
                 } else {
                   p.style.display = 'none';
                 }
@@ -550,34 +545,10 @@ const blogSections = [
                 break;
               }
             }
-
-            // Guard against subpixel / flex-1 overflow pushing leftCard taller than targetCardHeight
-            while (leftCard.offsetHeight > targetCardHeight && lastVisibleIdx >= 0) {
-              const p = paras[lastVisibleIdx];
-              if (lastVisibleLines > 1) {
-                lastVisibleLines -= 1;
-                p.style.display = '-webkit-box';
-                p.style.webkitBoxOrient = 'vertical';
-                p.style.webkitLineClamp = String(lastVisibleLines);
-                p.style.overflow = 'hidden';
-              } else {
-                p.style.display = 'none';
-                lastVisibleIdx -= 1;
-                if (lastVisibleIdx >= 0) {
-                  lastVisibleLines = Math.max(
-                    1,
-                    Math.round(paras[lastVisibleIdx].offsetHeight / paraLineHeight)
-                  );
-                } else {
-                  container.style.display = 'none';
-                }
-              }
-            }
           } else if (container) {
             container.style.display = 'none';
           }
         } else {
-          // Description itself needs truncation
           if (container) container.style.display = 'none';
           if (desc) {
             const descLinesFit = Math.max(1, Math.floor(availableTextHeight / descLineHeight));
@@ -601,7 +572,12 @@ const blogSections = [
       window.addEventListener('resize', scheduleFit, { passive: true });
 
       if (typeof ResizeObserver !== 'undefined') {
-        const ro = new ResizeObserver(() => scheduleFit());
+        const ro = new ResizeObserver((entries) => {
+          const nextH = Math.round(entries[0]?.contentRect.height || 0);
+          if (nextH > 0 && Math.abs(nextH - lastRightHeight) > 2) {
+            scheduleFit();
+          }
+        });
         ro.observe(rightCol);
         const leftPoster = leftCard.querySelector<HTMLElement>('.youtube-poster-embed');
         if (leftPoster) ro.observe(leftPoster);
@@ -609,10 +585,6 @@ const blogSections = [
     }
 
       setupFeaturedCardFitter();
-      document.addEventListener('astro:page-load', setupFeaturedCardFitter);
     </script>
   )}
-  <script>
-    import '../../scripts/youtube-embed';
-  </script>
 </BaseLayout>

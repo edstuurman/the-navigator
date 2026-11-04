@@ -11,10 +11,10 @@ const { contentTagSlugs } = await getTagTaxonomy();
   <div class="mx-auto max-w-7xl px-6 lg:px-8">
     <!-- Header -->
     <div class="mx-auto max-w-2xl text-center mb-16 sm:mb-20">
-      <p class="text-base/7 font-semibold text-amber-600 dark:text-amber-500">Career Journey</p>
+      <p class="text-base/7 font-semibold text-amber-700 dark:text-amber-500">Career Journey</p>
       <h2 class="mt-2 text-4xl font-semibold tracking-tight text-pretty text-gray-900 dark:text-white sm:text-5xl">Work Experience</h2>
       <p class="mt-4 text-base/7 text-gray-600 dark:text-gray-300">
-        Over a decade architecting multi-region cloud platforms, distributed edge networks, and declarative infrastructure automation.
+        Over a decade scaling mission-critical email security platforms, enterprise hardware, and reliable cloud infrastructure.
       </p>
     </div>
 
@@ -38,7 +38,7 @@ const { contentTagSlugs } = await getTagTaxonomy();
             
             <!-- Left Column: Striking Year Marker & Period (Desktop) -->
             <div class="hidden lg:flex flex-col items-end text-right pr-4 pt-1">
-              <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold tracking-wide uppercase bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 ring-1 ring-inset ring-amber-600/20 shadow-xs">
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold tracking-wide uppercase bg-amber-100 text-amber-800 dark:bg-gray-800 dark:text-amber-500 ring-1 ring-inset ring-amber-600/20 dark:ring-amber-500/30 shadow-xs">
                 {exp.year}
               </span>
               <span class="mt-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
@@ -50,7 +50,7 @@ const { contentTagSlugs } = await getTagTaxonomy();
                 </span>
               )}
               {exp.isCurrent && (
-                <span class="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                <span class="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
                   <span class="relative flex size-2">
                     <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
                     <span class="relative inline-flex size-2 rounded-full bg-emerald-500"></span>
@@ -87,14 +87,14 @@ const { contentTagSlugs } = await getTagTaxonomy();
                   <div class="size-3 rounded-full bg-amber-600 dark:bg-amber-500 ring-4 ring-white dark:ring-gray-900"></div>
                 )}
               </div>
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 ring-1 ring-inset ring-amber-600/20">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase bg-amber-100 text-amber-800 dark:bg-gray-800 dark:text-amber-500 ring-1 ring-inset ring-amber-600/20 dark:ring-amber-500/30">
                 {exp.year}
               </span>
               <span class="text-xs font-semibold text-gray-500 dark:text-gray-400">
                 {exp.period} {exp.duration ? `(${exp.duration})` : ""}
               </span>
               {exp.isCurrent && (
-                <span class="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                <span class="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-400">
                   <span class="size-1.5 rounded-full bg-emerald-500"></span>
                   Current
                 </span>
@@ -112,7 +112,7 @@ const { contentTagSlugs } = await getTagTaxonomy();
                       {exp.role}
                     </h3>
                     <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-                      <span class="font-semibold text-amber-600 dark:text-amber-400">
+                      <span class="font-semibold text-amber-700 dark:text-amber-400">
                         {exp.company}
                       </span>
                       <span class="text-gray-300 dark:text-gray-600" aria-hidden="true">•</span>
@@ -129,7 +129,7 @@ const { contentTagSlugs } = await getTagTaxonomy();
 
                 <!-- Internal Progression note if present -->
                 {exp.progression && (
-                  <p class="mt-3 text-xs font-medium text-amber-700 dark:text-amber-300/90 bg-amber-50/80 dark:bg-amber-950/40 px-3 py-1.5 rounded-lg ring-1 ring-inset ring-amber-600/15">
+                  <p class="mt-3 text-xs font-medium text-amber-700 dark:text-amber-500 bg-amber-50/80 dark:bg-gray-700/60 px-3 py-1.5 rounded-lg ring-1 ring-inset ring-amber-600/15 dark:ring-amber-500/30">
                     {exp.progression}
                   </p>
                 )}
@@ -156,7 +156,7 @@ const { contentTagSlugs } = await getTagTaxonomy();
                         <a 
                           href={tagHref(tagSlug)}
                           class={hasContent 
-                            ? "inline-flex items-center rounded-md bg-amber-50 dark:bg-amber-950/50 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-300 ring-1 ring-inset ring-amber-600/30 hover:bg-amber-100 dark:hover:bg-amber-900/60 transition-colors"
+                            ? "inline-flex items-center rounded-md bg-amber-50 dark:bg-gray-700/60 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-500 ring-1 ring-inset ring-amber-600/30 dark:ring-amber-500/30 hover:bg-amber-100 dark:hover:bg-gray-700 dark:hover:text-amber-400 transition-colors"
                             : "inline-flex items-center rounded-md bg-gray-100 dark:bg-gray-700/50 px-2.5 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 ring-1 ring-inset ring-gray-200 dark:ring-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                           }
                           title={hasContent ? `View articles and logs tagged #${skill}` : `View experience tagged #${skill}`}

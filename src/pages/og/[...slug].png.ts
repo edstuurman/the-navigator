@@ -47,7 +47,7 @@ export async function getStaticPaths() {
     const props: OgImageProps = {
       badge: 'Status-Update',
       title: log.data.title,
-      description: getExcerpt(log.body, 170),
+      description: getExcerpt(log.body ?? "", 170),
       pubDate: log.data.date,
       tags: log.data.tags || [],
       theme: 'amber',
@@ -99,7 +99,7 @@ export async function getStaticPaths() {
   // 4. Core Static Pages
   const corePages: Record<string, OgImageProps> = {
     home: {
-      badge: siteConfig.author.role,
+      badge: siteConfig.author.jobTitle,
       title: `${siteConfig.author.name} — Systems, Homelab & Cloud`,
       description: siteConfig.site.description,
       tags: ['Infrastructure', 'Reliability', 'Linux', 'AWS'],
@@ -155,7 +155,7 @@ export async function getStaticPaths() {
       theme: 'violet',
     },
     default: {
-      badge: siteConfig.author.role,
+      badge: siteConfig.author.jobTitle,
       title: `${siteConfig.author.name} — ${siteConfig.site.domain}`,
       description: siteConfig.site.description,
       tags: ['Infrastructure', 'Reliability', 'Japan'],
@@ -196,7 +196,7 @@ export async function getStaticPaths() {
 export const GET: APIRoute = async ({ props }) => {
   try {
     const pngBuffer = await generateOgImage(props as OgImageProps);
-    return new Response(pngBuffer, {
+    return new Response(new Uint8Array(pngBuffer), {
       status: 200,
       headers: {
         'Content-Type': 'image/png',

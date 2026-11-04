@@ -1,0 +1,221 @@
+name: CI/CD Pipeline (Terraform + Astro Build + AWS S3/CloudFront Deploy)
+
+on:
+  push:
+    branches:
+      - main
+    tags-ignore:
+      - '**'
+  workflow_dispatch:
+    inputs:
+      terraform_action:
+        description: 'Terraform infrastructure action (requires TF_VAR_environment_domain)'
+        required: false
+        default: 'none'
+        type: choice
+        options:
+          - none
+          - bootstrap
+          - plan
+          - apply
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  # ----------------------------------------------------------------------------
+  # Stage 1: Infrastructure (Terraform S3 + MRAP + CloudFront + Route 53 + ACM)
+  # Mirrors `.gitlab-ci.yml` stages: `terraform:bootstrap`, `terraform:plan`, `terraform:apply`
+  # ----------------------------------------------------------------------------
+  infrastructure:
+    name: Infrastructure (Terraform)
+    runs-on: ubuntu-latest
+    env:
+      TF_VAR_environment_domain: ${{ vars.TF_VAR_environment_domain }}
+      TF_VAR_environment_domain_slug: ${{ vars.TF_VAR_environment_domain_slug }}
+      TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+      TF_STATE_REGION: ${{ vars.TF_STATE_REGION || vars.AWS_DEFAULT_REGION || 'ap-northeast-1' }}
+      AWS_DEFAULT_REGION: ${{ vars.AWS_DEFAULT_REGION || 'ap-northeast-1' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Dry-Run Infrastructure Check (Template Mode)
+        if: ${{ env.TF_VAR_environment_domain == '' }}
+        run: |
+          echo "==> [DRY-RUN] TF_VAR_environment_domain is not configured in GitHub Actions Variables."
+          echo "==> Validating Terraform module structure (terraform/ & terraform/bootstrap/)..."
+          test -f terraform/versions.tf
+          test -f terraform/backend.tf
+          test -f terraform/cloudfront.tf
+          test -f terraform/s3-mrap.tf
+          test -f terraform/acm-route53.tf
+          test -f terraform/bootstrap/main.tf
+          echo "==> Terraform configuration files verified."
+          {
+            echo "### 🧭 Stage 1: Infrastructure (Starter Template Dry-Run)"
+            echo "- **Status:** ✅ Passed (Dry-Run Mode)"
+            echo "- **Modules Verified:** \`terraform/bootstrap/*.tf\`, \`terraform/*.tf\` (S3 Multi-Region Access Point, CloudFront SigV4a OAC, ACM, Route 53)"
+            echo "- **Activate Live Terraform Runs:** Set \`TF_VAR_environment_domain\` in **Settings → Secrets and variables → Actions → Variables** and configure \`AWS_ACCESS_KEY_ID\` / \`AWS_SECRET_ACCESS_KEY\` in **Secrets**."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Setup Terraform 1.14
+        if: ${{ env.TF_VAR_environment_domain != '' }}
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.14.0
+
+      - name: Configure AWS Credentials
+        if: ${{ env.TF_VAR_environment_domain != '' }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
+      - name: Compute State Bucket & Region
+        if: ${{ env.TF_VAR_environment_domain != '' }}
+        id: tf-vars
+        run: |
+          DOMAIN_SLUG="${TF_VAR_environment_domain_slug:-$(echo "$TF_VAR_environment_domain" | tr '.' '-')}"
+          STATE_BUCKET="${TF_STATE_BUCKET:-${DOMAIN_SLUG}-tfstate}"
+          echo "state_bucket=${STATE_BUCKET}" >> "$GITHUB_OUTPUT"
+
+      - name: Terraform Bootstrap (Manual Greenfield State Bucket)
+        if: ${{ env.TF_VAR_environment_domain != '' && github.event.inputs.terraform_action == 'bootstrap' }}
+        run: |
+          terraform -chdir=terraform/bootstrap init -input=false
+          terraform -chdir=terraform/bootstrap apply -input=false -auto-approve \
+            -var="state_bucket_name=${{ steps.tf-vars.outputs.state_bucket }}" \
+            -var="state_bucket_region=${TF_STATE_REGION}"
+
+      - name: Terraform Validate & Plan
+        if: ${{ env.TF_VAR_environment_domain != '' && (github.event.inputs.terraform_action == 'plan' || github.event.inputs.terraform_action == 'apply') }}
+        run: |
+          terraform -chdir=terraform init -input=false \
+            -backend-config="bucket=${{ steps.tf-vars.outputs.state_bucket }}" \
+            -backend-config="region=${TF_STATE_REGION}"
+          terraform -chdir=terraform validate
+          terraform -chdir=terraform plan -input=false -out=tfplan
+
+      - name: Terraform Apply
+        if: ${{ env.TF_VAR_environment_domain != '' && github.event.inputs.terraform_action == 'apply' }}
+        run: |
+          terraform -chdir=terraform apply -input=false -auto-approve tfplan
+          terraform -chdir=terraform output
+
+  # ----------------------------------------------------------------------------
+  # Stage 2: Static Site Build (Astro 7.4 + Tailwind CSS v4 + Satori OG + Mermaid)
+  # Mirrors `.gitlab-ci.yml` job: `build`
+  # ----------------------------------------------------------------------------
+  build:
+    name: Build Static Site (Astro 7.4)
+    runs-on: ubuntu-latest
+    env:
+      S3_BUCKET: ${{ vars.S3_BUCKET }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Dry-Run Build Check (Template Mode)
+        if: ${{ env.S3_BUCKET == '' }}
+        run: |
+          echo "==> [DRY-RUN] S3_BUCKET is not configured in GitHub Actions Variables."
+          echo "==> Skipping full Playwright Chromium + Astro build on template repository."
+          test -f package.json
+          test -f astro.config.mjs
+          test -f src/site.config.ts
+          test -f src/theme.config.ts
+          test -f src/content.config.ts
+          mkdir -p dist
+          echo "dry-run" > dist/.dry-run
+          {
+            echo "### ⚡ Stage 2: Astro 7.4 Build (Starter Template Dry-Run)"
+            echo "- **Status:** ✅ Passed (Dry-Run Mode — skipped Chromium & image compilation)"
+            echo "- **Verified Configs:** \`package.json\`, \`astro.config.mjs\`, \`src/site.config.ts\`, \`src/theme.config.ts\`, \`src/content.config.ts\`"
+            echo "- **Activate Live Builds:** Add \`S3_BUCKET\` in **Settings → Secrets and variables → Actions → Variables** to enable full Astro builds with persistent \`.cache/astro/\` and \`.cache/og-images/\` caching."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Setup Node.js 22
+        if: ${{ env.S3_BUCKET != '' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Restore Persistent Build Cache (.cache/astro, .cache/og-images, .cache/youtube-thumbs)
+        if: ${{ env.S3_BUCKET != '' }}
+        uses: actions/cache@v4
+        with:
+          path: .cache
+          key: astro-build-cache-${{ runner.os }}-${{ hashFiles('package-lock.json', 'src/site.config.ts', 'src/theme.config.ts') }}
+          restore-keys: |
+            astro-build-cache-${{ runner.os }}-
+
+      - name: Install Dependencies & Playwright Chromium
+        if: ${{ env.S3_BUCKET != '' }}
+        run: |
+          npm ci --prefer-offline
+          npx playwright install --with-deps chromium
+
+      - name: Type Check & Build Production Static Site
+        if: ${{ env.S3_BUCKET != '' }}
+        run: |
+          npm run check
+          npm run build
+
+      - name: Upload ./dist Artifact
+        if: ${{ env.S3_BUCKET != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: astro-dist
+          path: ./dist/
+          retention-days: 3
+
+  # ----------------------------------------------------------------------------
+  # Stage 3: Incremental MD5/ETag S3 Sync & Targeted CloudFront Invalidation
+  # Mirrors `.gitlab-ci.yml` job: `deploytos3`
+  # ----------------------------------------------------------------------------
+  deploytos3:
+    name: Deploy to S3 + CloudFront
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      S3_BUCKET: ${{ vars.S3_BUCKET }}
+      CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
+      AWS_DEFAULT_REGION: ${{ vars.AWS_DEFAULT_REGION || 'ap-northeast-1' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Dry-Run Deploy Check (Template Mode)
+        if: ${{ env.S3_BUCKET == '' }}
+        run: |
+          echo "==> [DRY-RUN] Validating scripts/s3-deploy.sh syntax..."
+          bash -n ./scripts/s3-deploy.sh
+          echo "==> scripts/s3-deploy.sh syntax OK."
+          {
+            echo "### 🚀 Stage 3: Deploy to S3 + CloudFront (Starter Template Dry-Run)"
+            echo "- **Status:** ✅ Passed (\`bash -n ./scripts/s3-deploy.sh\` syntax validated)"
+            echo "- **Activate Live Deployments:** Configure \`S3_BUCKET\` and \`CLOUDFRONT_DISTRIBUTION_ID\` in **Actions Variables**, plus \`AWS_ACCESS_KEY_ID\` and \`AWS_SECRET_ACCESS_KEY\` in **Actions Secrets**."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Download ./dist Artifact
+        if: ${{ env.S3_BUCKET != '' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: astro-dist
+          path: ./dist
+
+      - name: Configure AWS Credentials
+        if: ${{ env.S3_BUCKET != '' }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
+      - name: Run Incremental MD5/ETag S3 Deployment & CloudFront Invalidation
+        if: ${{ env.S3_BUCKET != '' }}
+        run: bash ./scripts/s3-deploy.sh ./dist

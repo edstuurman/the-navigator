@@ -1,7 +1,7 @@
 /**
  * Strips Markdown formatting and produces a clean plain-text excerpt truncated to maxLength characters at a word boundary.
  */
-export function getExcerpt(text: string, maxLength = 160): string {
+export function getExcerpt(text: string | undefined, maxLength = 160): string {
   if (!text) return '';
   const clean = text
     .replace(/^---[\s\S]*?---/, '')

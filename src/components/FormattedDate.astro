@@ -1,4 +1,6 @@
 ---
+import { formatSiteDate } from '../utils/dates';
+
 interface Props {
 	date: Date;
 	class?: string;
@@ -8,11 +10,5 @@ const { date, class: className } = Astro.props;
 ---
 
 <time class={className ?? "block text-sm/6 text-gray-600 dark:text-gray-400"} datetime={date.toISOString()}>
-	{
-		date.toLocaleDateString('en-us', {
-			year: 'numeric',
-			month: 'short',
-			day: 'numeric',
-		})
-	}
+	{formatSiteDate(date)}
 </time>

@@ -158,6 +158,5 @@ if (typeof window !== 'undefined') {
   } else {
     initTechTooltips();
   }
-  document.addEventListener('astro:page-load', initTechTooltips);
 }
 

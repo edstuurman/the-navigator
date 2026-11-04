@@ -1,5 +1,6 @@
 import { getCollection, type CollectionEntry } from 'astro:content';
 import crypto from 'node:crypto';
+import fs from 'node:fs';
 import { slugify } from './slugify';
 import { getChangelogEntries } from './changelog';
 import { experiences, type ExperienceItem } from '../data/experiences';
@@ -199,13 +200,32 @@ export async function getTagTaxonomy(): Promise<TagTaxonomyResult> {
   return cachedTaxonomy;
 }
 
+const TAG_TEMPLATE_DIGEST = (() => {
+  const h = crypto.createHash('sha256');
+  for (const p of [
+    'src/pages/tags/[tag].astro',
+    'src/layouts/BaseLayout.astro',
+    'src/components/Footer.astro',
+    'src/components/TagList.astro',
+    'src/styles/global.css',
+  ]) {
+    try {
+      h.update(fs.readFileSync(p));
+    } catch {
+      // ignore if path unavailable
+    }
+  }
+  return h.digest('hex');
+})();
+
 /**
  * Computes a deterministic cache key for a tag archive page.
- * Changes only when the articles, logs, photos, or experiences
+ * Changes only when the articles, logs, photos, experiences, or templates
  * associated with this specific tag change.
  */
 export function computeTagCacheKey(slug: string, data: TagArchiveData): string {
   const hash = crypto.createHash('sha256');
+  hash.update(TAG_TEMPLATE_DIGEST);
   hash.update(slug);
   hash.update(data.tagName || '');
 
@@ -230,7 +250,7 @@ export function computeTagCacheKey(slug: string, data: TagArchiveData): string {
   }
 
   for (const exp of data.experiences || []) {
-    hash.update(exp.id || '');
+    hash.update(exp.year || exp.period || "");
     hash.update(exp.role || '');
     hash.update(exp.company || '');
   }

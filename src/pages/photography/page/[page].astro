@@ -1,14 +1,10 @@
 ---
-import type { ImageMetadata } from 'astro';
 import PhotographyView from '../../../components/pages/PhotographyView.astro';
 import { GALLERY_PAGE_SIZE } from '../../../utils/pagination';
+import { photoCount } from '../../../utils/photoImages';
 
 export async function getStaticPaths() {
-  const images = import.meta.glob<{ default: ImageMetadata }>(
-    '/src/images/photography/*.{jpg,jpeg,png,webp}',
-  );
-  const totalPhotos = Object.keys(images).length;
-  const totalPages = Math.ceil(totalPhotos / GALLERY_PAGE_SIZE);
+  const totalPages = Math.ceil(photoCount / GALLERY_PAGE_SIZE);
 
   const paths = [];
   for (let page = 2; page <= totalPages; page++) {

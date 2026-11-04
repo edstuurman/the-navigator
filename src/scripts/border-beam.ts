@@ -90,8 +90,5 @@ if (typeof document !== 'undefined') {
   } else {
     initBorderBeamObserver();
   }
-
-  // Support Astro view transitions and client-side page navigation
-  document.addEventListener('astro:page-load', initBorderBeamObserver);
 }
 

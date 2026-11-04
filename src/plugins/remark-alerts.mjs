@@ -47,10 +47,10 @@ export function remarkAlerts() {
             }
 
             node.data = node.data || {};
-            node.data.hName = 'aside';
+            node.data.hName = 'div';
             node.data.hProperties = {
               className: ['markdown-alert', `markdown-alert-${type}`],
-              role: 'alert'
+              role: 'note'
             };
 
             const headerNode = {

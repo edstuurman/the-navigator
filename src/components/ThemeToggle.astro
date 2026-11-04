@@ -68,10 +68,10 @@ const effectiveIconClass = iconClass ?? (isPill ? 'size-3 sm:size-3.5' : 'size-5
 
 <script>
   function setupThemeToggle() {
-    document.querySelectorAll('[data-theme-toggle]').forEach((toggle) => {
+    document.querySelectorAll<HTMLElement>('[data-theme-toggle]').forEach((toggle) => {
       // Avoid duplicate listener attachments
-      if ((toggle as any)._hasThemeListener) return;
-      (toggle as any)._hasThemeListener = true;
+      if (toggle.dataset.themeBound === 'true') return;
+      toggle.dataset.themeBound = 'true';
 
       toggle.addEventListener('click', () => {
         const isDark = document.documentElement.classList.toggle('dark');
@@ -84,7 +84,5 @@ const effectiveIconClass = iconClass ?? (isPill ? 'size-3 sm:size-3.5' : 'size-5
   }
 
   setupThemeToggle();
-  document.addEventListener('astro:page-load', setupThemeToggle);
-  document.addEventListener('astro:after-swap', setupThemeToggle);
 </script>
 

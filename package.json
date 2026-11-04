@@ -1,9 +1,10 @@
 {
   "name": "the-navigator",
   "type": "module",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "scripts": {
     "dev": "astro dev",
+    "check": "astro check",
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro"
@@ -16,13 +17,15 @@
     "@resvg/resvg-js": "^2.6.2",
     "@tailwindcss/vite": "^4.3.3",
     "astro": "^7.4.2",
-    "playwright": "^1.64.1",
     "rehype-mermaid": "^3.0.0",
     "satori": "^0.63.2",
     "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
-    "@tailwindcss/typography": "^0.5.20"
+    "@astrojs/check": "^0.9.8",
+    "@tailwindcss/typography": "^0.5.20",
+    "playwright": "^1.64.1",
+    "typescript": "^5.9.3"
   },
   "overrides": {
     "fflate": "^0.8.2",
