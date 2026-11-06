@@ -83,7 +83,7 @@ const filterTabs: { kind: LogFilterKind; href: string; label: string; count: num
 <BaseLayout
   pageTitle={pageTitle}
   description={description}
-  image="/og/log.png"
+  image="/og/log.jpg"
   imageAlt={logPageData.pageTitle}
   breadcrumbs={[{ name: 'Log', href: filter !== 'all' || currentPage > 1 ? '/log/' : undefined }]}
 >
@@ -136,18 +136,18 @@ const filterTabs: { kind: LogFilterKind; href: string; label: string; count: num
                   </svg>
                 )}
                 {tab.kind === 'note' && (
-                  <svg class="size-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v4.518Z" />
+                  <svg class="size-3.5 shrink-0" aria-hidden="true">
+                    <use href="#i-chat" />
                   </svg>
                 )}
                 {tab.kind === 'changelog' && (
-                  <svg class="size-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                  <svg class="size-3.5 shrink-0" aria-hidden="true">
+                    <use href="#i-check" />
                   </svg>
                 )}
                 {tab.kind === 'photo' && (
-                  <svg class="size-3.5 shrink-0" viewBox="0 0 24 20" fill="currentColor" aria-hidden="true">
-                    <path d="M1 5.25A2.25 2.25 0 0 1 3.25 3h2.382a2.25 2.25 0 0 0 1.95-1.125l.436-.654A2.25 2.25 0 0 1 10.068 0h3.864a2.25 2.25 0 0 1 2.05 1.221l.436.654A2.25 2.25 0 0 0 18.368 3h2.382A2.25 2.25 0 0 1 23 5.25v12.5A2.25 2.25 0 0 1 20.75 20H3.25A2.25 2.25 0 0 1 1 17.75V5.25ZM12 15a5 5 0 1 0 0-10 5 5 0 0 0 0 10Zm0-2a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z" />
+                  <svg class="size-3.5 shrink-0" aria-hidden="true">
+                    <use href="#i-camera" />
                   </svg>
                 )}
                 <span>{tab.label} ({tab.count})</span>
@@ -170,27 +170,24 @@ const filterTabs: { kind: LogFilterKind; href: string; label: string; count: num
               const { entry, Content, id: anchorId } = item;
               return (
                 <article id={anchorId} data-kind="note" class="timeline-entry relative group/entry scroll-mt-28">
-                  <div
-                    class="absolute -left-6 sm:-left-8 ml-[1px] -translate-x-1/2 top-1 size-3.5 rounded-full bg-amber-600 dark:bg-amber-500 ring-4 ring-white dark:ring-gray-900 shadow-xs"
-                    aria-hidden="true"
-                  ></div>
+                  <div class="log-dot" aria-hidden="true"></div>
 
                   <div class="flex items-center gap-x-3 text-xs mb-3">
                     <FormattedDate date={entry.data.date} />
-                    <span class="inline-flex items-center gap-1 text-[11px] font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800/80 px-2 py-0.5 rounded-md ring-1 ring-inset ring-gray-200 dark:ring-gray-700/80">
-                      <svg class="size-3 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v4.518Z" />
+                    <span class="log-badge">
+                      <svg class="size-3 text-gray-500 dark:text-gray-400" aria-hidden="true">
+                        <use href="#i-chat" />
                       </svg>
                       <span>Status-Update</span>
                     </span>
                   </div>
 
-                  <div class="rounded-2xl p-6 sm:p-8 shadow-md ring-1 ring-gray-900/5 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm dark:ring-white/10 transition-colors">
-                    <h2 class="text-xl font-semibold tracking-tight text-gray-900 dark:text-white flex items-center gap-2 group/title pb-4 border-b border-gray-100 dark:border-gray-700/60">
+                  <div class="log-card">
+                    <h2 class="log-h2">
                       <span>{entry.data.title}</span>
                       <a
                         href={`#${anchorId}`}
-                        class="text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 opacity-0 group-hover/entry:opacity-100 transition-opacity text-base font-normal"
+                        class="log-anchor"
                         aria-label={`Link to entry: ${entry.data.title}`}
                         title="Direct link to this entry"
                       >
@@ -198,12 +195,12 @@ const filterTabs: { kind: LogFilterKind; href: string; label: string; count: num
                       </a>
                     </h2>
 
-                    <div class="prose dark:prose-invert text-sm/6 max-w-none mt-4 text-gray-600 dark:text-gray-300 prose-a:text-amber-700 dark:prose-a:text-amber-400 hover:prose-a:underline">
+                    <div class="log-prose mt-4">
                       <Content />
                     </div>
 
                     {entry.data.tags && entry.data.tags.length > 0 && (
-                      <div class="mt-6 pt-4 border-t border-gray-100 dark:border-gray-700/60">
+                      <div class="log-footer">
                         <TagList tags={entry.data.tags} />
                       </div>
                     )}
@@ -212,31 +209,26 @@ const filterTabs: { kind: LogFilterKind; href: string; label: string; count: num
               );
             } else if (item.kind === 'changelog') {
               const anchorId = item.id;
-              const isCollapsible =
-                item.html.length > 800 || (item.html.match(/<li|<p|<h3/g) || []).length > 4;
               return (
                 <article id={anchorId} data-kind="changelog" class="timeline-entry relative group/entry scroll-mt-28">
-                  <div
-                    class="absolute -left-6 sm:-left-8 ml-[1px] -translate-x-1/2 top-1 size-3.5 rounded-full bg-amber-600 dark:bg-amber-500 ring-4 ring-white dark:ring-gray-900 shadow-xs"
-                    aria-hidden="true"
-                  ></div>
+                  <div class="log-dot" aria-hidden="true"></div>
 
                   <div class="flex items-center gap-x-3 text-xs mb-3">
                     <FormattedDate date={item.date} />
-                    <span class="inline-flex items-center gap-1 text-[11px] font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800/80 px-2 py-0.5 rounded-md ring-1 ring-inset ring-gray-200 dark:ring-gray-700/80">
-                      <svg class="size-3 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                    <span class="log-badge">
+                      <svg class="size-3 text-gray-500 dark:text-gray-400" aria-hidden="true">
+                        <use href="#i-check" />
                       </svg>
                       <span>Changelog</span>
                     </span>
                   </div>
 
-                  <div class="rounded-2xl p-6 sm:p-8 shadow-md ring-1 ring-gray-900/5 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm dark:ring-white/10 transition-colors">
-                    <h2 class="text-xl font-semibold tracking-tight text-gray-900 dark:text-white flex items-center gap-2 group/title pb-4 border-b border-gray-100 dark:border-gray-700/60">
+                  <div class="log-card">
+                    <h2 class="log-h2">
                       <span>{item.title}</span>
                       <a
                         href={`#${anchorId}`}
-                        class="text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 opacity-0 group-hover/entry:opacity-100 transition-opacity text-base font-normal"
+                        class="log-anchor"
                         aria-label={`Link to entry: ${item.title}`}
                         title="Direct link to this entry"
                       >
@@ -244,34 +236,23 @@ const filterTabs: { kind: LogFilterKind; href: string; label: string; count: num
                       </a>
                     </h2>
 
-                    {isCollapsible ? (
-                      <>
-                        <div class="changelog-wrapper relative mt-4">
-                          <div class="changelog-content prose dark:prose-invert text-sm/6 max-w-none text-gray-600 dark:text-gray-300 changelog-prose prose-a:text-amber-700 dark:prose-a:text-amber-400 hover:prose-a:underline max-h-56 overflow-hidden transition-[max-height] duration-300 ease-in-out" set:html={item.html} />
-                          <div class="changelog-fade pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-white/95 via-white/80 to-transparent dark:from-gray-800/95 dark:via-gray-800/80 dark:to-transparent transition-opacity duration-300" aria-hidden="true"></div>
-                        </div>
+                    <div class="log-prose changelog-prose mt-4" set:html={item.previewHtml} />
 
-                        <div class="changelog-toggle-wrap mt-3 pt-1 flex items-center justify-center">
-                          <button
-                            type="button"
-                            class="changelog-toggle-btn inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold text-amber-700 dark:text-amber-500 bg-amber-50/90 dark:bg-gray-700/60 hover:bg-amber-100 dark:hover:bg-gray-700 dark:hover:text-amber-400 ring-1 ring-inset ring-amber-600/25 dark:ring-amber-500/30 hover:ring-amber-600/40 shadow-xs hover:shadow-sm transition-all cursor-pointer"
-                            aria-expanded="false"
-                          >
-                            <span class="toggle-text">Show full changelog</span>
-                            <svg class="toggle-icon size-3.5 transition-transform duration-200" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                              <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
-                            </svg>
-                          </button>
-                        </div>
-                      </>
-                    ) : (
-                      <div class="mt-4">
-                        <div class="changelog-content prose dark:prose-invert text-sm/6 max-w-none text-gray-600 dark:text-gray-300 changelog-prose prose-a:text-amber-700 dark:prose-a:text-amber-400 hover:prose-a:underline" set:html={item.html} />
-                      </div>
+                    {item.restHtml && (
+                      <details class="changelog-details group/details mt-3">
+                        <summary class="changelog-summary">
+                          <span class="group-open/details:hidden">Show full release ({item.restCount} more)</span>
+                          <span class="hidden group-open/details:inline">Show less</span>
+                          <svg class="size-3.5 transition-transform duration-200 group-open/details:rotate-180" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
+                          </svg>
+                        </summary>
+                        <div class="log-prose changelog-prose mt-3 pt-3 border-t border-gray-100 dark:border-gray-700/50" set:html={item.restHtml} />
+                      </details>
                     )}
 
                     {item.tags && item.tags.length > 0 && (
-                      <div class="mt-6 pt-4 border-t border-gray-100 dark:border-gray-700/60">
+                      <div class="log-footer">
                         <TagList tags={item.tags} />
                       </div>
                     )}
@@ -283,23 +264,20 @@ const filterTabs: { kind: LogFilterKind; href: string; label: string; count: num
               const galleryHref = getGalleryPhotoHref(photo.id);
               return (
                 <article id={`photo-${photo.id}`} data-kind="photo" class="timeline-entry relative group/entry scroll-mt-28">
-                  <div
-                    class="absolute -left-6 sm:-left-8 ml-[1px] -translate-x-1/2 top-1 size-3.5 rounded-full bg-amber-600 dark:bg-amber-500 ring-4 ring-white dark:ring-gray-900 shadow-xs"
-                    aria-hidden="true"
-                  ></div>
+                  <div class="log-dot" aria-hidden="true"></div>
 
                   <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs mb-3">
                     <FormattedDate date={photo.pubDate} />
-                    <span class="inline-flex items-center gap-1 text-[11px] font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800/80 px-2 py-0.5 rounded-md ring-1 ring-inset ring-gray-200 dark:ring-gray-700/80">
-                      <svg class="size-3 text-gray-500 dark:text-gray-400" viewBox="0 0 24 20" fill="currentColor" aria-hidden="true">
-                        <path d="M1 5.25A2.25 2.25 0 0 1 3.25 3h2.382a2.25 2.25 0 0 0 1.95-1.125l.436-.654A2.25 2.25 0 0 1 10.068 0h3.864a2.25 2.25 0 0 1 2.05 1.221l.436.654A2.25 2.25 0 0 0 18.368 3h2.382A2.25 2.25 0 0 1 23 5.25v12.5A2.25 2.25 0 0 1 20.75 20H3.25A2.25 2.25 0 0 1 1 17.75V5.25ZM12 15a5 5 0 1 0 0-10 5 5 0 0 0 0 10Zm0-2a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z" />
+                    <span class="log-badge">
+                      <svg class="size-3 text-gray-500 dark:text-gray-400" aria-hidden="true">
+                        <use href="#i-camera" />
                       </svg>
                       <span>Photo • {photo.category}</span>
                     </span>
                     <span class="text-gray-400 dark:text-gray-500" aria-hidden="true">•</span>
                     <span class="inline-flex items-center gap-1 text-gray-500 dark:text-gray-400 font-medium">
-                      <svg class="size-3.5 text-amber-600 dark:text-amber-500 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                        <path fill-rule="evenodd" d="m9.69 18.933.003.001C9.89 19.02 10 19 10 19s.11.02.308-.066l.002-.001.006-.003.018-.008a5.741 5.741 0 0 0 .281-.14c.186-.096.446-.24.757-.433.62-.384 1.445-.966 2.274-1.765C15.302 14.988 17 12.493 17 9A7 7 0 1 0 3 9c0 3.492 1.698 5.988 3.355 7.588a13.43 13.43 0 0 0 3.031 2.198l.018.008.006.003.002.001ZM10 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clip-rule="evenodd" />
+                      <svg class="size-3.5 text-amber-600 dark:text-amber-500 shrink-0" aria-hidden="true">
+                        <use href="#i-pin" />
                       </svg>
                       <span>{photo.location}</span>
                     </span>
@@ -311,7 +289,7 @@ const filterTabs: { kind: LogFilterKind; href: string; label: string; count: num
                     )}
                   </div>
 
-                  <div class="border-beam-card group/card relative rounded-2xl p-6 sm:p-7 shadow-md hover:shadow-xl ring-1 ring-gray-900/5 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm dark:ring-white/10 hover:ring-amber-500/40 transition-all duration-200">
+                  <div class="border-beam-card group/card log-photo-card">
                     <div class="grid grid-cols-1 sm:grid-cols-12 gap-6 items-start">
                       <a
                         href={galleryHref}
@@ -385,78 +363,17 @@ const filterTabs: { kind: LogFilterKind; href: string; label: string; count: num
       </div>
     </div>
   </div>
-  <TechTooltipsScript />
-  <YouTubeEmbedScript />
+  {pageItems.some((it) => it.kind === 'note') && (
+    <>
+      <TechTooltipsScript />
+      <YouTubeEmbedScript />
+    </>
+  )}
 </BaseLayout>
 
 <script type="application/json" id="log-anchor-pages" set:html={JSON.stringify(anchorToPage)} />
 
 <script>
-  function setupChangelogCollapsibles() {
-    const wrappers = document.querySelectorAll<HTMLElement>('.changelog-wrapper');
-    wrappers.forEach((wrapper) => {
-      if (wrapper.dataset.collapsibleInit) return;
-      wrapper.dataset.collapsibleInit = 'true';
-
-      const contentEl = wrapper.querySelector<HTMLElement>('.changelog-content');
-      const toggleWrap = wrapper.nextElementSibling as HTMLElement | null;
-      const fadeEl = wrapper.querySelector<HTMLElement>('.changelog-fade');
-      if (!contentEl || !toggleWrap || !fadeEl) return;
-
-      const btnEl = toggleWrap.querySelector<HTMLButtonElement>('.changelog-toggle-btn');
-      const textSpanEl = btnEl?.querySelector<HTMLElement>('.toggle-text');
-      const icon = btnEl?.querySelector<HTMLElement>('.toggle-icon');
-      if (!btnEl || !textSpanEl) return;
-
-      const content: HTMLElement = contentEl;
-      const fade: HTMLElement = fadeEl;
-      const btn: HTMLButtonElement = btnEl;
-      const textSpan: HTMLElement = textSpanEl;
-
-      let isExpanded = false;
-
-      function expand() {
-        isExpanded = true;
-        content.style.maxHeight = content.scrollHeight + 'px';
-        content.classList.remove('max-h-56');
-        fade.classList.add('opacity-0', 'pointer-events-none');
-        btn.setAttribute('aria-expanded', 'true');
-        textSpan.textContent = 'Show less';
-        icon?.classList.add('rotate-180');
-      }
-
-      function collapse() {
-        isExpanded = false;
-        content.style.maxHeight = content.scrollHeight + 'px';
-        requestAnimationFrame(() => {
-          content.style.maxHeight = '';
-          content.classList.add('max-h-56');
-          fade.classList.remove('opacity-0', 'pointer-events-none');
-          btn.setAttribute('aria-expanded', 'false');
-          textSpan.textContent = 'Show full changelog';
-          icon?.classList.remove('rotate-180');
-        });
-      }
-
-      btn.addEventListener('click', () => {
-        if (isExpanded) {
-          collapse();
-          const rect = wrapper.getBoundingClientRect();
-          if (rect.top < 0) {
-            wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
-        } else {
-          expand();
-        }
-      });
-
-      const article = wrapper.closest('article');
-      if (article && window.location.hash === `#${article.id}`) {
-        expand();
-      }
-    });
-  }
-
   function handleHashTarget() {
     if (!window.location.hash || window.location.hash.length <= 1) return;
     const targetId = decodeURIComponent(window.location.hash.slice(1));
@@ -464,9 +381,9 @@ const filterTabs: { kind: LogFilterKind; href: string; label: string; count: num
 
     if (targetArticle) {
       if (targetArticle.getAttribute('data-kind') === 'changelog') {
-        const btn = targetArticle.querySelector<HTMLButtonElement>('.changelog-toggle-btn');
-        if (btn && btn.getAttribute('aria-expanded') === 'false') {
-          btn.click();
+        const details = targetArticle.querySelector<HTMLDetailsElement>('.changelog-details');
+        if (details && !details.open) {
+          details.open = true;
         }
       }
       return;
@@ -488,15 +405,10 @@ const filterTabs: { kind: LogFilterKind; href: string; label: string; count: num
     }
   }
 
-  function initLogPage() {
-    setupChangelogCollapsibles();
-    handleHashTarget();
-  }
-
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initLogPage);
+    document.addEventListener('DOMContentLoaded', handleHashTarget);
   } else {
-    initLogPage();
+    handleHashTarget();
   }
   window.addEventListener('hashchange', handleHashTarget);
 </script>

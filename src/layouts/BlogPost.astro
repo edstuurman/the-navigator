@@ -28,6 +28,8 @@ type Props = CollectionEntry<'blog'>['data'] & {
   nextPost?: AdjacentPost;
   prevPost?: AdjacentPost;
   headings?: MarkdownHeading[];
+  hasMermaid?: boolean;
+  hasYouTube?: boolean;
 };
 
 const {
@@ -48,6 +50,8 @@ const {
   sectionNav,
   sectionDepth,
   sections: manualSections,
+  hasMermaid = true,
+  hasYouTube = true,
 } = Astro.props;
 
 const blogSections = resolveBlogSections(
@@ -55,7 +59,7 @@ const blogSections = resolveBlogSections(
   headings
 );
 
-const ogImage = heroImage || (id ? `/og/blog/${id}.png` : '/og/blog.png');
+const ogImage = heroImage || (id ? `/og/blog/${id}.jpg` : '/og/blog.jpg');
 ---
 
 <BaseLayout
@@ -275,42 +279,24 @@ const ogImage = heroImage || (id ? `/og/blog/${id}.png` : '/og/blog.png');
           }, 2000);
         };
 
-        const fallbackCopy = (text: string) => {
-          try {
-            const textArea = document.createElement('textarea');
-            textArea.value = text;
-            textArea.style.position = 'fixed';
-            textArea.style.left = '-999999px';
-            textArea.style.top = '-999999px';
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-            const success = document.execCommand('copy');
-            document.body.removeChild(textArea);
-            if (success) {
-              setCopied();
-            } else {
-              throw new Error('execCommand failed');
-            }
-          } catch {
-            copyBtn.setAttribute('title', 'Failed to copy');
-            copyBtn.classList.add('is-error');
-            setTimeout(() => {
-              copyBtn.innerHTML = copySvg;
-              copyBtn.classList.remove('is-error');
-              copyBtn.setAttribute('title', 'Copy code to clipboard');
-            }, 2000);
-          }
+        const setCopyError = () => {
+          copyBtn.setAttribute('title', 'Failed to copy');
+          copyBtn.classList.add('is-error');
+          setTimeout(() => {
+            copyBtn.innerHTML = copySvg;
+            copyBtn.classList.remove('is-error');
+            copyBtn.setAttribute('title', 'Copy code to clipboard');
+          }, 2000);
         };
 
         copyBtn.addEventListener('click', () => {
           const code = pre.querySelector('code');
           const codeText = (code || pre).innerText;
 
-          if (navigator.clipboard && window.isSecureContext) {
-            navigator.clipboard.writeText(codeText).then(setCopied).catch(() => fallbackCopy(codeText));
+          if (navigator.clipboard?.writeText) {
+            navigator.clipboard.writeText(codeText).then(setCopied).catch(setCopyError);
           } else {
-            fallbackCopy(codeText);
+            setCopyError();
           }
         });
 
@@ -322,8 +308,8 @@ const ogImage = heroImage || (id ? `/og/blog/${id}.png` : '/og/blog.png');
     setupCodeCopyButtons();
   </script>
   <TechTooltipsScript />
-  <MermaidZoomScript />
-  <YouTubeEmbedScript />
+  {hasMermaid && <MermaidZoomScript />}
+  {hasYouTube && <YouTubeEmbedScript />}
 </BaseLayout>
 
 <style is:global>

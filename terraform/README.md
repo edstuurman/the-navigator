@@ -87,6 +87,7 @@ terraform/
 | `TF_STATE_BUCKET` | `<domain-slug>-tfstate` | Custom S3 bucket name for `terraform.tfstate` and `.tflock` |
 | `TF_STATE_REGION` | `$AWS_DEFAULT_REGION` (`ap-northeast-1`) | Custom AWS region for the Terraform state S3 bucket |
 | `TF_VAR_cloudfront_price_class` | `PriceClass_200` | CloudFront price class (`PriceClass_100`, `PriceClass_200`, `PriceClass_All`) |
+| `ENABLE_CI` | `""` | Set to `"true"` on GitLab if your fork project path still contains `navigator` |
 
 ---
 

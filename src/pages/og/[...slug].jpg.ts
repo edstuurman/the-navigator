@@ -2,8 +2,6 @@ import type { APIRoute } from 'astro';
 import { getCollection } from 'astro:content';
 import { generateOgImage, computeOgCacheKey, type OgImageProps } from '../../utils/generateOgImage';
 import { getReadingTime } from '../../utils/readingTime';
-import { getExcerpt } from '../../utils/excerpt';
-import { getChangelogEntries } from '../../utils/changelog';
 import { getTagTaxonomy } from '../../utils/tagTaxonomy';
 import { isHardLinkedTag } from '../../utils/tagHref';
 import { pictureLogs } from '../../utils/pictureLogs';
@@ -40,44 +38,7 @@ export async function getStaticPaths() {
     });
   }
 
-  // 2. Status-Updates from src/content/log/
-  const allLogs = await getCollection('log');
-  for (const log of allLogs) {
-    const slug = log.id.replace(/\.[^/.]+$/, '');
-    const props: OgImageProps = {
-      badge: 'Status-Update',
-      title: log.data.title,
-      description: getExcerpt(log.body ?? "", 170),
-      pubDate: log.data.date,
-      tags: log.data.tags || [],
-      theme: 'amber',
-    };
-    paths.push({
-      params: { slug: `log/${slug}` },
-      props,
-      cacheKey: computeOgCacheKey(props),
-    });
-  }
-
-  // 2b. Changelog entries (single source of truth from CHANGELOG.md)
-  const changelogEntries = await getChangelogEntries();
-  for (const cl of changelogEntries) {
-    const props: OgImageProps = {
-      badge: 'Changelog',
-      title: cl.title,
-      description: getExcerpt(cl.rawMarkdown, 170),
-      pubDate: cl.date,
-      tags: cl.tags || [],
-      theme: 'amber',
-    };
-    paths.push({
-      params: { slug: `log/${cl.id}` },
-      props,
-      cacheKey: computeOgCacheKey(props),
-    });
-  }
-
-  // 3. Unique Topic / Tag Archives
+  // 2. Unique Topic / Tag Archives
   const { archiveMap } = await getTagTaxonomy();
   for (const [tagSlug, data] of archiveMap.entries()) {
     if (isHardLinkedTag(tagSlug)) continue;
@@ -96,69 +57,111 @@ export async function getStaticPaths() {
     });
   }
 
-  // 4. Core Static Pages
+  // 4. Core Static Pages (derived from `src/content/pages/*.md` + `siteConfig`)
+  const allPages = await getCollection('pages');
+  const pagesMap = new Map(allPages.map((p) => [p.id.replace(/\.[^/.]+$/, ''), p.data]));
+  const defaultTags = siteConfig.site.defaultKeywords.slice(0, 4);
+
+  const pageMeta = (
+    slug: string,
+    fallbackTitle: string,
+    fallbackDesc: string,
+    fallbackTags: string[],
+  ) => {
+    const entry = pagesMap.get(slug);
+    return {
+      title: entry?.ogTitle || entry?.pageTitle || fallbackTitle,
+      description: entry?.description || fallbackDesc,
+      tags: entry?.ogTags && entry.ogTags.length > 0 ? entry.ogTags : fallbackTags,
+    };
+  };
+
   const corePages: Record<string, OgImageProps> = {
     home: {
       badge: siteConfig.author.jobTitle,
-      title: `${siteConfig.author.name} — Systems, Homelab & Cloud`,
-      description: siteConfig.site.description,
-      tags: ['Infrastructure', 'Reliability', 'Linux', 'AWS'],
+      ...pageMeta(
+        'home',
+        `${siteConfig.author.name} — ${siteConfig.author.tagline}`,
+        siteConfig.site.description,
+        defaultTags,
+      ),
       theme: 'amber',
     },
     about: {
       badge: 'Profile & Background',
-      title: `About ${siteConfig.author.name}`,
-      description: 'Infrastructure and reliability engineer with over a decade scaling carrier-grade email security platforms, enterprise hardware escalations, and cloud architecture in Japan.',
-      tags: ['Engineering', 'Reliability', 'Career', 'Japan'],
+      ...pageMeta(
+        'about',
+        `About ${siteConfig.author.name}`,
+        siteConfig.author.bio,
+        defaultTags,
+      ),
       theme: 'indigo',
     },
     now: {
       badge: 'Living Snapshot',
-      title: 'What I’m Doing Now — /now',
-      description: 'A living snapshot of where I am in Japan, what I am building in the homelab, and what is occupying my time and engineering attention.',
-      tags: ['Now', 'Homelab', 'Projects', 'Japan'],
+      ...pageMeta(
+        'now',
+        'What I’m Doing Now — /now',
+        siteConfig.site.description,
+        ['Now', ...defaultTags.slice(0, 3)],
+      ),
       theme: 'emerald',
     },
     log: {
-      badge: 'Stream • Changelogs, Status-Updates & Photo Rolls',
-      title: 'Log Stream & Status-Updates',
-      description: 'A chronological stream of status-updates, site changelogs, and everyday discoveries.',
-      tags: ['Changelogs', 'Status-Updates', 'Photo Rolls'],
+      badge: pagesMap.get('log')?.badge || 'Stream • Changelogs, Status-Updates & Photo Rolls',
+      ...pageMeta(
+        'log',
+        'Log Stream & Status-Updates',
+        'A chronological stream of status-updates, site changelogs, and photo rolls.',
+        ['Changelogs', 'Status-Updates', 'Photo Rolls'],
+      ),
       theme: 'amber',
     },
     blog: {
       badge: 'Engineering Articles',
-      title: 'From the Blog — Technical Deep-Dives',
-      description: 'Notes from the homelab: carrier-grade email deliverability, AWS Multi-Region Access Points, Proxmox virtualization, and AI-assisted workflows.',
-      tags: ['Architecture', 'AWS', 'Email', 'AI'],
+      ...pageMeta(
+        'blog',
+        'From the Blog — Technical Deep-Dives',
+        siteConfig.site.description,
+        ['Architecture', 'AWS', 'Terraform', 'Astro'],
+      ),
       theme: 'cyan',
     },
     photography: {
       badge: 'Visual Gallery',
-      title: 'Photography Roll — Moments & Landscapes',
-      description: `Moments, textures, and architecture captured through the lens across Japan, the Aegean, and Europe by ${siteConfig.author.name}.`,
-      tags: ['Photography', 'Japan', 'Architecture'],
+      ...pageMeta(
+        'photography',
+        'Photography Roll — Moments & Landscapes',
+        `Photography gallery by ${siteConfig.author.name}.`,
+        ['Photography', 'Architecture', 'Landscapes'],
+      ),
       theme: 'fuchsia',
     },
     contact: {
       badge: 'Direct Connect',
-      title: `Get in Touch — ${siteConfig.author.name}`,
-      description: 'Reach out for conversations on infrastructure resilience, carrier-grade mail delivery, or general engineering inquiries.',
-      tags: ['Contact', 'Email', 'Japan'],
+      ...pageMeta(
+        'contact',
+        `Get in Touch — ${siteConfig.author.name}`,
+        `Get in touch with ${siteConfig.author.name}.`,
+        ['Contact', 'Email'],
+      ),
       theme: 'blue',
     },
     tags: {
       badge: 'Topic Directory',
-      title: 'Topics & Taxonomy',
-      description: 'Explore articles, status updates, career experience, and photos by technology, location, and theme.',
-      tags: ['Topics', 'Tags', 'Index'],
+      ...pageMeta(
+        'tags',
+        'Topics & Taxonomy',
+        'Explore articles, status updates, career experience, and photos by technology, location, and theme.',
+        ['Topics', 'Tags', 'Index'],
+      ),
       theme: 'violet',
     },
     default: {
       badge: siteConfig.author.jobTitle,
       title: `${siteConfig.author.name} — ${siteConfig.site.domain}`,
       description: siteConfig.site.description,
-      tags: ['Infrastructure', 'Reliability', 'Japan'],
+      tags: defaultTags,
       theme: 'amber',
     },
   };
@@ -171,7 +174,7 @@ export async function getStaticPaths() {
     });
   }
 
-  // 5. Individual Photographs (/og/photography/[id].png)
+  // 5. Individual Photographs (/og/photography/[id].jpg)
   for (const photo of pictureLogs) {
     const props: OgImageProps = {
       badge: `Photograph #${photo.id}`,
@@ -195,11 +198,11 @@ export async function getStaticPaths() {
 
 export const GET: APIRoute = async ({ props }) => {
   try {
-    const pngBuffer = await generateOgImage(props as OgImageProps);
-    return new Response(new Uint8Array(pngBuffer), {
+    const jpegBuffer = await generateOgImage(props as OgImageProps);
+    return new Response(new Uint8Array(jpegBuffer), {
       status: 200,
       headers: {
-        'Content-Type': 'image/png',
+        'Content-Type': 'image/jpeg',
         'Cache-Control': 'public, max-age=31536000, immutable',
       },
     });

@@ -2,7 +2,7 @@
 title: "Part 3 — Automated CI/CD Pipelines, Starter Dry-Run Mode & Deploying to Any Static Host"
 description: "How The Navigator's dual GitLab CI and GitHub Actions pipelines run in 5-second Starter Template Dry-Run Mode out of the box, how to deploy ./dist/ to Vercel, Netlify, or Cloudflare Pages, and how scripts/s3-deploy.sh pairs ETag delta sync with 4-tier Edge/Browser Cache-Control headers."
 pubDate: '2026-11-03T10:00:00'
-updatedDate: '2026-11-05'
+updatedDate: '2026-11-06'
 tags: ["CI/CD", "Architecture", "AWS", "CloudFront", "AstroJS"]
 sectionNav: "h1 to h2"
 ---
@@ -57,7 +57,7 @@ If you connect your GitHub or GitLab repository directly to Vercel, Netlify, or 
 
 A common frustration with open-source starter templates that include production CI/CD workflows is the **"Red Pipeline on First Fork" problem**: the moment you fork or push the starter repository to GitHub or GitLab, the CI pipeline tries to authenticate with AWS or run `aws s3 sync`, fails because you haven't configured cloud secrets yet, and plasters red `❌` failure badges across your repository.
 
-To solve this cleanly, both **`.gitlab-ci.yml`** (GitLab CI/CD) and **`.github/workflows/deploy.yml`** (GitHub Actions) implement **automatic Starter Template Dry-Run Mode**:
+To solve this cleanly, both **`.gitlab-ci.yml`** (GitLab CI/CD) and **`.github/workflows/deploy.yml`** (GitHub Actions) in **The Navigator** implement **automatic Starter Template Dry-Run Mode**:
 
 ```mermaid
 flowchart TD
@@ -77,8 +77,34 @@ When `S3_BUCKET` is empty (the default on a fresh clone or fork):
 2. **Infrastructure Check (`terraform:dry-run`)**: When `TF_VAR_environment_domain` is unset, a lightweight dry-run job verifies that all Terraform modules (`terraform/versions.tf`, `terraform/backend.tf`, `terraform/cloudfront.tf`, `terraform/s3-mrap.tf`, `terraform/acm-route53.tf`, and `terraform/bootstrap/main.tf`) are present and passes with a green `✅` badge.
 3. **Zero-Edit Transition to Production**: The moment you add `S3_BUCKET` (and your AWS credentials) in **GitLab CI/CD Variables** or **GitHub Actions Secrets & Variables**, the exact same workflow automatically transitions to full production builds and S3 delta deployments—without editing a single line of `.gitlab-ci.yml` or `.github/workflows/deploy.yml`.
 
+### Enabling Automated CI/CD on Your Fork
+
+To prevent consuming shared runner minutes and avoid redundant builds on the public demo template, automated CI is intentionally disabled on the upstream `the-navigator` repository (`src9061948/the-navigator` / `edstuurman/the-navigator`). CI runs only on the production site (`stuurman`).
+
+When you fork or clone the theme for your own site, here is the exact one-time interaction to enable automated builds:
+
+#### A. For GitLab CI/CD (`.gitlab-ci.yml`)
+- **Renamed Projects (Default)**: If you rename your repository to your own domain or project name (e.g. `my-awesome-site`), GitLab CI runs automatically out of the box.
+- **Projects Retaining "navigator"**: If your fork retains `navigator` in its project name or path, `.gitlab-ci.yml` includes an upstream guard that skips CI. To enable it, either:
+  1. Add a CI/CD Variable in **Settings > CI/CD > Variables**: `ENABLE_CI = "true"`.
+  2. Or delete the first rule (`- if: '$ENABLE_CI != "true" && ($CI_PROJECT_NAME =~ /navigator/i ...)'`) under `workflow: rules:` in `.gitlab-ci.yml`.
+
+#### B. For GitHub Actions (`.github/workflows/deploy.yml`)
+- Automated `push` triggers are commented out by default so fresh forks don't trigger unwanted builds until you are ready.
+- You can manually test and run the workflow at any time via the **Actions** tab in your GitHub repository (**Run workflow** button).
+- To enable automatic builds on every `git push` to `main`, simply un-comment the `push:` block at lines 6–10 of `.github/workflows/deploy.yml`:
+  ```yaml
+  on:
+    push:
+      branches:
+        - main
+      tags-ignore:
+        - '**'
+    workflow_dispatch:
+  ```
+
 > [!IMPORTANT]
-> **Strict Environment Isolation**: Neither `scripts/s3-deploy.sh`, `.gitlab-ci.yml`, `.github/workflows/deploy.yml`, nor `terraform/` contain any hardcoded bucket names, distribution IDs, or personal domains. If `scripts/s3-deploy.sh` is invoked locally without `S3_BUCKET` set in your environment, it immediately aborts with an explicit error message (`Error: S3_BUCKET environment variable is required`).
+> **Strict Environment Isolation**: Neither `scripts/s3-deploy.sh`, `.gitlab-ci.yml`, `.github/workflows/deploy.yml`, nor `terraform/` in **The Navigator** contain any hardcoded bucket names, distribution IDs, or personal domains. If `scripts/s3-deploy.sh` is invoked locally without `S3_BUCKET` set in your environment, it immediately aborts with an explicit error message (`Error: S3_BUCKET environment variable is required`).
 
 ---
 
@@ -95,12 +121,12 @@ When deploying to AWS S3 + CloudFront, `scripts/s3-deploy.sh` solves two classic
 
 | Tier | File Patterns | `Cache-Control` Header | Browser Behavior (`max-age`) | CloudFront Edge Behavior (`s-maxage`) |
 | :--- | :--- | :--- | :--- | :--- |
-| **Tier 1: Fingerprinted Assets** | `/_astro/*` (including `/_astro/styles.<hash>.css`), `/yt-thumbs/*`, `/pagefind/*` | `public, max-age=31536000, immutable` | Cached **1 year** without revalidation (filenames contain content hashes) | Cached **1 year** at edge |
-| **Tier 2: Media & Fonts** | `/images/*`, `/fonts/*`, `.webp`, `.avif`, `.png`, `.jpg`, `.woff2` | `public, max-age=2592000, s-maxage=31536000` | Cached **30 days** in browser | Cached **1 year** at edge |
-| **Tier 3: HTML & OG Cards** | `*.html`, `/og/*.png` | `public, max-age=0, s-maxage=31536000, must-revalidate` | **Always revalidates** (`304 Not Modified` in milliseconds; instant updates after deploy) | Cached **1 year** at edge until explicitly invalidated by `s3-deploy.sh` |
-| **Tier 4: Feeds & Indexes** | `*.xml`, `*.txt`, `*.json`, `*.xsl`, `*.webmanifest` | `public, max-age=3600, s-maxage=86400` | Cached **1 hour** in browser/readers | Cached **24 hours** at edge |
+| **Tier 1: Fingerprinted Assets** | `_astro/*` (including `/_astro/styles.<hash>.css`), `yt-thumbs/*` | `public, max-age=31536000, immutable` | Cached **1 year** without revalidation (filenames contain content hashes) | Cached **1 year** at edge |
+| **Tier 2: Static Media & OG Cards** | `og/*`, `*.png`, `*.svg`, `*.ico`, `*.webp`, `*.jpg`, `*.jpeg` | `public, max-age=86400, s-maxage=31536000, stale-while-revalidate=86400` | Cached **24 hours** in browser with 24h stale-while-revalidate | Cached **1 year** at edge until explicitly invalidated |
+| **Tier 3: Feeds & Indexes** | `*.xml`, `*.txt`, `*.json`, `*.xsl`, `*.webmanifest` | `public, max-age=3600, s-maxage=86400` | Cached **1 hour** in browser/readers | Cached **24 hours** at edge |
+| **Tier 4: HTML Documents** | `*.html` (`*`) | `public, max-age=0, s-maxage=31536000, must-revalidate` | **Always revalidates** (`304 Not Modified` in milliseconds; instant updates after deploy) | Cached **1 year** at edge until explicitly invalidated by `s3-deploy.sh` |
 
-Why is **Tier 3 (`public, max-age=0, s-maxage=31536000, must-revalidate`)** so effective for HTML pages?
+Why is **Tier 4 (`public, max-age=0, s-maxage=31536000, must-revalidate`)** so effective for HTML pages?
 - **At the CloudFront Edge**: `s-maxage=31536000` tells CloudFront edge POPs to keep HTML pages cached in memory for a full year—eliminating origin fetches to S3.
 - **In the Visitor's Browser**: `max-age=0, must-revalidate` tells the browser to check with the nearest CloudFront edge POP on navigation. When nothing has changed, CloudFront returns `304 Not Modified` at the edge in a few milliseconds. When you deploy an update and `scripts/s3-deploy.sh` invalidates that path on CloudFront, every visitor receives the fresh HTML immediately on their very next page load!
 
@@ -119,10 +145,10 @@ flowchart LR
     Delete --> Invalidate
 ```
 
-On a typical content update (such as editing a blog post or adding a status note):
+As detailed in our earlier [GitLab CI S3 deployment optimization write-up](/blog/2026-11-01-optimizing-gitlab-ci-s3-deployments/), on a typical content update:
 1. `scripts/s3-deploy.sh` fetches all existing object keys and ETags from your primary S3 bucket in a single `aws s3api list-objects-v2` call.
 2. It computes local MD5 checksums across `./dist/` and skips every file whose MD5 matches its remote S3 ETag.
-3. Only the handful of modified files are uploaded in parallel (`MAX_PARALLEL=16`) with explicit `Content-Type` and tiered `Cache-Control` metadata.
+3. Only the handful of modified files are uploaded in parallel (`PARALLEL_JOBS=16`) with tiered `Cache-Control` headers and explicit `--content-type` metadata for `.xsl`, `.webmanifest`, and `.txt` files.
 4. Finally, it normalizes the changed paths (turning `/blog/my-post/index.html` into `/blog/my-post/*`) and submits a single CloudFront invalidation request—or automatically collapses the invalidation to `/*` if more than `MAX_INVALIDATION_PATHS` (`15`) paths changed, staying well within AWS's free invalidation tier.
 
 ---

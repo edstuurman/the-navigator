@@ -27,7 +27,7 @@ export interface Props {
 const {
   pageTitle,
   description = themeConfig.site.description,
-  image = "/og/home.png",
+  image = "/og/home.jpg",
   imageAlt,
   type = 'website',
   publishedTime,
@@ -59,7 +59,7 @@ const imageHeight = typeof image === 'object' && image !== null && 'height' in i
   : (isOgEndpoint ? 630 : undefined);
 const imageFormat = typeof image === 'object' && image !== null && 'format' in image
   ? `image/${image.format}`
-  : (isOgEndpoint ? 'image/png' : undefined);
+  : (isOgEndpoint ? 'image/jpeg' : undefined);
 const resolvedImageAlt = imageAlt || pageTitle;
 
 // Format dates if present
@@ -72,10 +72,12 @@ const modifiedISO = modifiedTime
 
 // Person Schema (used across site to establish author/creator identity)
 const sameAsLinks = Object.values(themeConfig.socials).filter((v): v is string => Boolean(v));
+const personId = `${themeConfig.site.url}/#person`;
+const personRef = { "@id": personId };
 
 const personSchema = {
-  "@context": "https://schema.org",
   "@type": "Person",
+  "@id": personId,
   "name": themeConfig.author.name,
   ...(themeConfig.author.alternateName ? { "alternateName": themeConfig.author.alternateName } : {}),
   "url": themeConfig.site.url,
@@ -91,7 +93,6 @@ let pageSchema: Record<string, unknown>;
 
 if (type === 'article') {
   pageSchema = {
-    "@context": "https://schema.org",
     "@type": "BlogPosting",
     "mainEntityOfPage": {
       "@type": "WebPage",
@@ -102,82 +103,50 @@ if (type === 'article') {
     "image": imageURL.href,
     "datePublished": publishedISO,
     "dateModified": modifiedISO || publishedISO,
-    "author": {
-      "@type": "Person",
-      "name": author,
-      "url": themeConfig.site.url
-    },
-    "publisher": {
-      "@type": "Person",
-      "name": themeConfig.author.name,
-      "url": themeConfig.site.url
-    },
+    "author": author === themeConfig.author.name
+      ? personRef
+      : {
+          "@type": "Person",
+          "name": author,
+          "url": themeConfig.site.url
+        },
+    "publisher": personRef,
     ...(tags.length > 0 ? { "keywords": tags.join(", ") } : {}),
     ...(section ? { "articleSection": section } : {})
   };
 } else if (type === 'profile') {
   pageSchema = {
-    "@context": "https://schema.org",
     "@type": "ProfilePage",
     "name": pageTitle,
     "url": canonicalURL.href,
     "description": description,
-    "mainEntity": {
-      "@type": "Person",
-      "name": themeConfig.author.name,
-      ...(themeConfig.author.alternateName ? { "alternateName": themeConfig.author.alternateName } : {}),
-      "url": themeConfig.site.url,
-      "image": new URL(FallbackImage.src, Astro.site).href,
-      "jobTitle": themeConfig.author.jobTitle,
-      "description": description,
-      "sameAs": sameAsLinks,
-      "knowsAbout": themeConfig.author.knowsAbout
-    }
+    "mainEntity": personRef
   };
 } else if (type === 'blog') {
   pageSchema = {
-    "@context": "https://schema.org",
     "@type": "Blog",
     "name": pageTitle,
     "url": canonicalURL.href,
     "description": description,
-    "author": {
-      "@type": "Person",
-      "name": themeConfig.author.name,
-      "url": themeConfig.site.url
-    },
-    "publisher": {
-      "@type": "Person",
-      "name": themeConfig.author.name,
-      "url": themeConfig.site.url
-    }
+    "author": personRef,
+    "publisher": personRef
   };
 } else if (type === 'gallery') {
   pageSchema = {
-    "@context": "https://schema.org",
     "@type": "ImageGallery",
     "name": pageTitle,
     "url": canonicalURL.href,
     "description": description,
-    "author": {
-      "@type": "Person",
-      "name": themeConfig.author.name,
-      "url": themeConfig.site.url
-    }
+    "author": personRef
   };
 } else {
   pageSchema = {
-    "@context": "https://schema.org",
     "@type": "WebSite",
     "name": themeConfig.site.title,
     "alternateName": themeConfig.site.domain,
     "url": `${themeConfig.site.url}/`,
     "description": description,
-    "publisher": {
-      "@type": "Person",
-      "name": themeConfig.author.name,
-      "url": themeConfig.site.url
-    }
+    "publisher": personRef
   };
 }
 
@@ -204,7 +173,6 @@ if (breadcrumbs && breadcrumbs.length > 0) {
 
 const breadcrumbSchema = breadcrumbItems.length > 1
   ? {
-      "@context": "https://schema.org",
       "@type": "BreadcrumbList",
       "itemListElement": breadcrumbItems.map((item, idx) => ({
         "@type": "ListItem",
@@ -214,6 +182,15 @@ const breadcrumbSchema = breadcrumbItems.length > 1
       }))
     }
   : undefined;
+
+const structuredDataGraph = {
+  "@context": "https://schema.org",
+  "@graph": [
+    personSchema,
+    pageSchema,
+    ...(breadcrumbSchema ? [breadcrumbSchema] : []),
+  ],
+};
 ---
 
 <meta charset="utf-8" />
@@ -275,9 +252,7 @@ const breadcrumbSchema = breadcrumbItems.length > 1
 <meta name="twitter:image:alt" property="twitter:image:alt" content={resolvedImageAlt} />
 
 <!-- Structured Data -->
-<script type="application/ld+json" set:html={JSON.stringify(personSchema)} />
-<script type="application/ld+json" set:html={JSON.stringify(pageSchema)} />
-{breadcrumbSchema && <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />}
+<script type="application/ld+json" set:html={JSON.stringify(structuredDataGraph)} />
 
 {/* Umami Analytics (configurable via theme.config.ts, deferred past critical render path) */}
 {themeConfig.integrations.umami.enabled && themeConfig.integrations.umami.websiteId && (

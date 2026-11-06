@@ -95,6 +95,8 @@ const pages = defineCollection({
 	schema: z.object({
 		pageTitle: z.string(),
 		description: z.string(),
+		ogTitle: z.string().optional(),
+		ogTags: z.array(z.string()).optional(),
 		eyebrow: z.string().optional(),
 		heading: z.string().optional(),
 		subtitle: z.string().optional(),

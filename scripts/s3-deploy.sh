@@ -126,7 +126,7 @@ if [ -s "$IMMUTABLE_FILE" ]; then
   ' _ {} "$BUCKET" < "$IMMUTABLE_FILE"
 fi
 
-# 2. Upload mutable routes concurrently with split Edge (s-maxage) & Browser (max-age) Cache-Control
+# 2. Upload mutable routes concurrently with 4-tier split Edge (s-maxage) & Browser (max-age) Cache-Control
 if [ -s "$MUTABLE_FILE" ]; then
   echo "==> Uploading mutable routes in parallel (concurrency: ${PARALLEL_JOBS})..."
   xargs -n 1 -P "$PARALLEL_JOBS" -I {} bash -c '
@@ -137,12 +137,22 @@ if [ -s "$MUTABLE_FILE" ]; then
       og/*|*.png|*.svg|*.ico|*.webp|*.jpg|*.jpeg)
         cache_ctrl="public, max-age=86400, s-maxage=31536000, stale-while-revalidate=86400"
         ;;
+      *.xml|*.txt|*.json|*.xsl|*.webmanifest)
+        cache_ctrl="public, max-age=3600, s-maxage=86400"
+        ;;
       *)
         cache_ctrl="public, max-age=0, s-maxage=31536000, must-revalidate"
         ;;
     esac
+    content_type_args=()
+    case "$key" in
+      *.xsl)         content_type_args=(--content-type "text/xsl") ;;
+      *.webmanifest) content_type_args=(--content-type "application/manifest+json") ;;
+      *.txt)         content_type_args=(--content-type "text/plain; charset=utf-8") ;;
+    esac
     aws s3 cp "$key" "s3://${bucket}/${key}" \
       --cache-control "$cache_ctrl" \
+      "${content_type_args[@]}" \
       --only-show-errors
     echo "  [uploaded] $key"
   ' _ {} "$BUCKET" < "$MUTABLE_FILE"

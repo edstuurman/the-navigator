@@ -1,11 +1,13 @@
 name: CI/CD Pipeline (Terraform + Astro Build + AWS S3/CloudFront Deploy)
 
+# CI runs on stuurman only (disabled on the-navigator).
+# To enable automated CI on push for your own fork, un-comment the 'push' block below.
 on:
-  push:
-    branches:
-      - main
-    tags-ignore:
-      - '**'
+  # push:
+  #   branches:
+  #     - main
+  #   tags-ignore:
+  #     - '**'
   workflow_dispatch:
     inputs:
       terraform_action:
@@ -18,6 +20,11 @@ on:
           - bootstrap
           - plan
           - apply
+      clean_build:
+        description: 'Purge .cache/astro before building (forces full route & image rebuild)'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -114,9 +121,12 @@ jobs:
     runs-on: ubuntu-latest
     env:
       S3_BUCKET: ${{ vars.S3_BUCKET }}
+      CLEAN_BUILD: ${{ vars.CLEAN_BUILD }}
     steps:
-      - name: Checkout repository
+      - name: Checkout repository (full depth for sitemap lastmod)
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Dry-Run Build Check (Template Mode)
         if: ${{ env.S3_BUCKET == '' }}
@@ -142,7 +152,37 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'
+
+      - name: Restore node_modules Cache
+        if: ${{ env.S3_BUCKET != '' }}
+        id: nm-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Dependencies (on cache miss)
+        if: ${{ env.S3_BUCKET != '' && steps.nm-cache.outputs.cache-hit != 'true' }}
+        run: npm ci --no-audit --no-fund
+
+      - name: Restore Playwright Headless Shell Cache
+        if: ${{ env.S3_BUCKET != '' }}
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-shell-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Playwright Headless Chromium Shell
+        if: ${{ env.S3_BUCKET != '' }}
+        run: |
+          if [ "${{ steps.pw-cache.outputs.cache-hit }}" = "true" ]; then
+            echo "==> Playwright headless shell cache hit; installing OS shared libs only..."
+            npx playwright install-deps chromium
+          else
+            echo "==> Installing Playwright chromium-headless-shell..."
+            npx playwright install --with-deps --only-shell chromium
+          fi
 
       - name: Restore Persistent Build Cache (.cache/astro, .cache/og-images, .cache/youtube-thumbs)
         if: ${{ env.S3_BUCKET != '' }}
@@ -153,15 +193,13 @@ jobs:
           restore-keys: |
             astro-build-cache-${{ runner.os }}-
 
-      - name: Install Dependencies & Playwright Chromium
+      - name: Optional Clean Build & Type Check + Production Build
         if: ${{ env.S3_BUCKET != '' }}
         run: |
-          npm ci --prefer-offline
-          npx playwright install --with-deps chromium
-
-      - name: Type Check & Build Production Static Site
-        if: ${{ env.S3_BUCKET != '' }}
-        run: |
+          if [ "${CLEAN_BUILD:-0}" = "1" ] || [ "${{ github.event.inputs.clean_build }}" = "true" ]; then
+            echo "CLEAN_BUILD requested -> purging .cache/astro"
+            rm -rf .cache/astro
+          fi
           npm run check
           npm run build
 

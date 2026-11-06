@@ -52,7 +52,7 @@ let cachedTaxonomy: TagTaxonomyResult | null = null;
  * Memoized cross-collection tag taxonomy builder shared by:
  * - `/tags/` directory (`tags/index.astro`)
  * - `/tags/[tag]/` archive routes (`tags/[tag].astro`)
- * - Open Graph tag card generator (`og/[...slug].png.ts`)
+ * - Open Graph tag card generator (`og/[...slug].jpg.ts`)
  * - Career skill badges (`ExperienceTimeline.astro`)
  */
 export async function getTagTaxonomy(): Promise<TagTaxonomyResult> {

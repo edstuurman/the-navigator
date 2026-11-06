@@ -48,9 +48,6 @@ const galleryItems = await Promise.all(
     const photoId = photoLog?.id ?? startIdx + index + 1;
     const timestamp = photoLog ? new Date(photoLog.pubDate).valueOf() : 0;
     const aspectRatio = Number((imgMeta.width / imgMeta.height).toFixed(4));
-    const desktopWidthPx = Math.max(150, Math.round(aspectRatio * 225));
-    const tabletWidthVw = Math.max(15, Math.round(aspectRatio * 25));
-    const mobileWidthVw = Math.max(22, Math.round(aspectRatio * 34));
 
     return {
       photoId,
@@ -65,7 +62,6 @@ const galleryItems = await Promise.all(
       alt: `${title} — ${location} (${dateFormatted})`,
       loading: (index < 4 ? 'eager' : 'lazy') as 'eager' | 'lazy',
       fetchpriority: (index < 2 ? 'high' : undefined) as 'high' | undefined,
-      sizes: `(min-width: 1024px) ${desktopWidthPx}px, (min-width: 640px) ${tabletWidthVw}vw, ${mobileWidthVw}vw`,
     };
   }),
 );
@@ -75,6 +71,7 @@ interface RowCellSpec {
   basis: string;
   height: string;
   mx: string;
+  sizeExpr: string;
 }
 
 function computeResponsiveSpecs(
@@ -97,6 +94,7 @@ function computeResponsiveSpecs(
         basis: `${w}px`,
         height: `${targetH}px`,
         mx: 'auto',
+        sizeExpr: `${w}px`,
       };
       return;
     }
@@ -110,6 +108,7 @@ function computeResponsiveSpecs(
         basis: `calc((100% - ${gapPx}px) * ${share} - 0.5px)`,
         height: heightExpr,
         mx: '0px',
+        sizeExpr: `calc((${viewportExpr} - ${gapPx}px) * ${share})`,
       };
     }
   };
@@ -165,7 +164,9 @@ const galleryCards = galleryItems.map((item, idx) => {
     `--d-h:${d.height}`,
     `--d-mx:${d.mx}`,
   ].join(';');
-  return { ...item, styleVars };
+  const sizes = `(min-width: 1024px) ${d.sizeExpr}, (min-width: 640px) ${t.sizeExpr}, ${m.sizeExpr}`;
+  const widths = item.aspectRatio > 1.8 ? [220, 320, 420, 560, 720, 840] : [220, 320, 420, 560];
+  return { ...item, styleVars, sizes, widths };
 });
 
 const photoPageEntry = await getEntry('pages', 'photography');
@@ -185,7 +186,7 @@ const breadcrumbs =
 <BaseLayout
   pageTitle={pageTitle}
   description={description}
-  image="/og/photography.png"
+  image="/og/photography.jpg"
   imageAlt={`Photography by ${siteConfig.author.name}`}
   type="gallery"
   breadcrumbs={breadcrumbs}
@@ -288,7 +289,7 @@ const breadcrumbs =
             <Image
               src={item.imgMeta}
               alt={item.alt}
-              widths={[220, 320, 420, 560]}
+              widths={item.widths}
               sizes={item.sizes}
               quality={60}
               loading={item.loading}

@@ -42,9 +42,8 @@ function sitemapAlias() {
 }
 
 /**
- * Astro integration publishing cached YouTube facade thumbnails (downloaded at
- * build time by `remark-youtube.mjs`) under `/yt-thumbs/` in both `dist/` and
- * the dev server.
+ * Astro dev-server middleware serving cached YouTube facade thumbnails under `/yt-thumbs/`.
+ * Production publishing and HTML post-processing happen in `postBuildHtml()`.
  * @returns {import('astro').AstroIntegration}
  */
 function youtubeThumbnails() {
@@ -61,203 +60,168 @@ function youtubeThumbnails() {
           fs.createReadStream(file).pipe(res);
         });
       },
-      'astro:build:done': async ({ dir, logger }) => {
-        try {
-          const distDir = fileURLToPath(dir);
-          // Map each thumbnail file referenced by built pages -> the HTML files using it.
-          const references = new Map();
-          const refRe = new RegExp(`${THUMB_PUBLIC_PREFIX}/([A-Za-z0-9_.-]+\\.webp)`, 'g');
-          /** @param {string} d */
-          const walk = (d) => {
-            for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
-              const full = path.join(d, entry.name);
-              if (entry.isDirectory()) walk(full);
-              else if (entry.name.endsWith('.html')) {
-                for (const m of fs.readFileSync(full, 'utf-8').matchAll(refRe)) {
-                  if (!THUMB_FILENAME_RE.test(m[1])) continue;
-                  if (!references.has(m[1])) references.set(m[1], new Set());
-                  references.get(m[1]).add(full);
-                }
-              }
-            }
-          };
-          walk(distDir);
-          if (references.size === 0) return;
-
-          const outDir = path.join(distDir, THUMB_PUBLIC_PREFIX.slice(1));
-          fs.mkdirSync(THUMB_CACHE_DIR, { recursive: true });
-          fs.mkdirSync(outDir, { recursive: true });
-          let published = 0;
-
-          for (const [file, pages] of references) {
-            const cached = path.join(THUMB_CACHE_DIR, file);
-            if (!fs.existsSync(cached)) {
-              // Page HTML came from Astro's content cache but the thumbnail cache is cold: heal or soft-fail.
-              const videoId = file.slice(0, 11);
-              try {
-                fs.writeFileSync(cached, await buildThumbnailBuffer(videoId));
-                logger.warn(`Re-downloaded missing YouTube thumbnail for ${videoId}`);
-              } catch (err) {
-                logger.warn(`Thumbnail for ${videoId} unavailable (${err instanceof Error ? err.message : String(err)}); using remote URL.`);
-                for (const page of pages) {
-                  const html = fs.readFileSync(page, 'utf-8');
-                  fs.writeFileSync(page, html.split(`${THUMB_PUBLIC_PREFIX}/${file}`).join(remoteThumbnailUrl(videoId)));
-                }
-                continue;
-              }
-            }
-            fs.copyFileSync(cached, path.join(outDir, file));
-            published++;
-          }
-          if (published > 0) logger.info(`Published ${published} YouTube thumbnail(s) to ${THUMB_PUBLIC_PREFIX}/`);
-        } catch (err) {
-          logger.warn(`Failed to publish YouTube thumbnails: ${err}`);
-        }
-      },
     },
   };
 }
 
 /**
- * Astro integration inlining self-contained `/_astro/*.js` module scripts directly
- * into built HTML pages so initial navigation has zero chained JS subrequests.
+ * Single-pass post-build HTML processor that walks `dist/` once to:
+ * 1. Publish cached YouTube facade thumbnails (or heal to remote URL on cache miss)
+ * 2. Inline self-contained `/_astro/*.js` module scripts
+ * 3. Strip developer HTML comments (`<!-- ... -->`) outside script/style/pre/textarea
+ * 4. Verify all `/_astro/*.{css,js}` references exist in `dist/`
+ * Each HTML file is read once and written at most once.
  * @returns {import('astro').AstroIntegration}
  */
-function inlineScripts() {
+function postBuildHtml() {
   return {
-    name: 'inline-scripts',
+    name: 'post-build-html',
     hooks: {
       'astro:build:done': async ({ dir, logger }) => {
-        try {
-          const distDir = fileURLToPath(dir);
-          const astroDir = path.join(distDir, '_astro');
-          if (!fs.existsSync(astroDir)) return;
+        const distDir = fileURLToPath(dir);
+        const astroDir = path.join(distDir, '_astro');
+        const ytOutDir = path.join(distDir, THUMB_PUBLIC_PREFIX.slice(1));
 
-          const jsCache = new Map();
+        const MAX_INLINE_SCRIPT_BYTES = 3072;
+        /** @type {Map<string, string>} */
+        const jsCache = new Map();
+        if (fs.existsSync(astroDir)) {
           for (const entry of fs.readdirSync(astroDir, { withFileTypes: true })) {
             if (!entry.isFile() || !entry.name.endsWith('.js')) continue;
-            const code = fs.readFileSync(path.join(astroDir, entry.name), 'utf-8');
-            // Only inline self-contained bundles without external ES module imports or closing script tags
-            if (!/\bimport\s*[\w*{]/.test(code) && !/\bfrom\s*['"]/.test(code) && !/<\/script/i.test(code)) {
-              jsCache.set(`/_astro/${entry.name}`, code.trim());
+            const code = fs.readFileSync(path.join(astroDir, entry.name), 'utf-8').trim();
+            // Only inline small (<= 3 KiB) self-contained bundles without external ES module imports
+            // or closing script tags; larger bundles stay external and hit the immutable /_astro/ cache.
+            if (
+              Buffer.byteLength(code, 'utf-8') <= MAX_INLINE_SCRIPT_BYTES &&
+              !/\bimport\s*[\w*{]/.test(code) &&
+              !/\bfrom\s*['"]/.test(code) &&
+              !/<\/script/i.test(code)
+            ) {
+              jsCache.set(`/_astro/${entry.name}`, code);
             }
           }
-          if (jsCache.size === 0) return;
+        }
 
-          const scriptRe = /<script\s+type="module"\s+src="(\/_astro\/[^"]+\.js)"><\/script>/g;
-          let inlinedCount = 0;
+        const ytRefRe = new RegExp(`${THUMB_PUBLIC_PREFIX}/([A-Za-z0-9_.-]+\\.webp)`, 'g');
+        const scriptRe = /<script\s+type="module"\s+src="(\/_astro\/[^"]+\.js)"><\/script>/g;
+        const commentRe = /(<(script|style|pre|textarea)\b[\s\S]*?<\/\2>)|<!--(?!\[if)[\s\S]*?-->/gi;
+        const assetRefRe = /["'(](\/_astro\/[^"'()\s?#]+\.(?:css|js))/g;
 
-          /** @param {string} d */
-          const walk = (d) => {
-            for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
-              const full = path.join(d, entry.name);
-              if (entry.isDirectory()) walk(full);
-              else if (entry.name.endsWith('.html')) {
-                const html = fs.readFileSync(full, 'utf-8');
-                let modified = false;
-                const updated = html.replace(scriptRe, (match, src) => {
+        /** @type {Map<string, string | null>} */
+        const thumbStatus = new Map();
+        /** @type {Map<string, boolean>} */
+        const verifiedAssets = new Map();
+        /** @type {Map<string, string>} */
+        const missingAssets = new Map();
+
+        let publishedThumbs = 0;
+        let inlinedCount = 0;
+        let savedBytes = 0;
+        let checkedPages = 0;
+
+        /** @param {string} d */
+        const walk = async (d) => {
+          for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
+            const full = path.join(d, entry.name);
+            if (entry.isDirectory()) {
+              await walk(full);
+            } else if (entry.name.endsWith('.html')) {
+              const original = fs.readFileSync(full, 'utf-8');
+              let html = original;
+
+              // 1. YouTube thumbnail publishing & fallback healing
+              for (const m of html.matchAll(ytRefRe)) {
+                const file = m[1];
+                if (!THUMB_FILENAME_RE.test(file)) continue;
+                if (!thumbStatus.has(file)) {
+                  const cached = path.join(THUMB_CACHE_DIR, file);
+                  /** @type {string | null} */
+                  let fallbackUrl = null;
+                  if (!fs.existsSync(cached)) {
+                    const videoId = file.slice(0, 11);
+                    try {
+                      fs.mkdirSync(THUMB_CACHE_DIR, { recursive: true });
+                      fs.writeFileSync(cached, await buildThumbnailBuffer(videoId));
+                      logger.warn(`Re-downloaded missing YouTube thumbnail for ${videoId}`);
+                    } catch (err) {
+                      logger.warn(
+                        `Thumbnail for ${videoId} unavailable (${err instanceof Error ? err.message : String(err)}); using remote URL.`
+                      );
+                      fallbackUrl = remoteThumbnailUrl(videoId);
+                    }
+                  }
+                  if (!fallbackUrl) {
+                    fs.mkdirSync(ytOutDir, { recursive: true });
+                    fs.copyFileSync(cached, path.join(ytOutDir, file));
+                    publishedThumbs++;
+                  }
+                  thumbStatus.set(file, fallbackUrl);
+                }
+                const fallbackUrl = thumbStatus.get(file);
+                if (fallbackUrl) {
+                  html = html.split(`${THUMB_PUBLIC_PREFIX}/${file}`).join(fallbackUrl);
+                }
+              }
+
+              // 2. Inline self-contained module scripts
+              if (jsCache.size > 0) {
+                let pageInlined = false;
+                html = html.replace(scriptRe, (match, src) => {
                   const code = jsCache.get(src);
                   if (!code) return match;
-                  modified = true;
+                  pageInlined = true;
                   return `<script type="module">${code}</script>`;
                 });
-                if (modified) {
-                  fs.writeFileSync(full, updated);
-                  inlinedCount++;
+                if (pageInlined) inlinedCount++;
+              }
+
+              // 3. Strip developer HTML comments
+              const beforeStripLen = html.length;
+              html = html.replace(commentRe, (_, keep) => keep ?? '');
+              if (html.length !== beforeStripLen) {
+                savedBytes += beforeStripLen - html.length;
+              }
+
+              // Write HTML at most once per page
+              if (html !== original) {
+                fs.writeFileSync(full, html);
+              }
+
+              // 4. Collect and verify /_astro/*.{css,js} references
+              checkedPages++;
+              for (const m of html.matchAll(assetRefRe)) {
+                const ref = m[1];
+                let exists = verifiedAssets.get(ref);
+                if (exists === undefined) {
+                  exists = fs.existsSync(path.join(distDir, ref));
+                  verifiedAssets.set(ref, exists);
+                }
+                if (!exists && !missingAssets.has(ref)) {
+                  missingAssets.set(ref, path.relative(distDir, full));
                 }
               }
             }
-          };
-          walk(distDir);
-          if (inlinedCount > 0) {
-            logger.info(`Inlined ${jsCache.size} module script bundle(s) across ${inlinedCount} HTML page(s)`);
           }
-        } catch (err) {
-          logger.warn(`Failed to inline module scripts: ${err}`);
+        };
+
+        await walk(distDir);
+
+        if (publishedThumbs > 0) {
+          logger.info(`Published ${publishedThumbs} YouTube thumbnail(s) to ${THUMB_PUBLIC_PREFIX}/`);
         }
-      },
-    },
-  };
-}
-
-/**
- * Astro integration stripping developer HTML comments (`<!-- ... -->`) from built
- * pages. Source comments stay in `.astro` files for maintainers; visitors don't
- * download them. Content inside `<script>`, `<style>`, `<pre>`, and `<textarea>` is left untouched.
- * @returns {import('astro').AstroIntegration}
- */
-function stripHtmlComments() {
-  return {
-    name: 'strip-html-comments',
-    hooks: {
-      'astro:build:done': async ({ dir, logger }) => {
-        const distDir = fileURLToPath(dir);
-        const re = /(<(script|style|pre|textarea)\b[\s\S]*?<\/\2>)|<!--(?!\[if)[\s\S]*?-->/gi;
-        let saved = 0;
-
-        /** @param {string} d */
-        const walk = (d) => {
-          for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
-            const full = path.join(d, entry.name);
-            if (entry.isDirectory()) walk(full);
-            else if (entry.name.endsWith('.html')) {
-              const html = fs.readFileSync(full, 'utf-8');
-              const stripped = html.replace(re, (match, keep) => keep ?? '');
-              if (stripped.length !== html.length) {
-                saved += html.length - stripped.length;
-                fs.writeFileSync(full, stripped);
-              }
-            }
-          }
-        };
-        walk(distDir);
-        if (saved > 0) logger.info(`Stripped ${(saved / 1024).toFixed(1)} KiB of HTML comments from built pages`);
-      },
-    },
-  };
-}
-
-/**
- * Astro integration that fails the build if any built HTML page references a
- * `/_astro/*.css` or `/_astro/*.js` asset missing from `dist/`. Guards against
- * stale incremental-build (route cache) output pointing at superseded hashed bundles.
- * @returns {import('astro').AstroIntegration}
- */
-function verifyAssetReferences() {
-  return {
-    name: 'verify-asset-references',
-    hooks: {
-      'astro:build:done': async ({ dir, logger }) => {
-        const distDir = fileURLToPath(dir);
-        const refRe = /["'(](\/_astro\/[^"'()\s?#]+\.(?:css|js))/g;
-        /** @type {Map<string, string>} */
-        const missing = new Map();
-        let checked = 0;
-
-        /** @param {string} d */
-        const walk = (d) => {
-          for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
-            const full = path.join(d, entry.name);
-            if (entry.isDirectory()) walk(full);
-            else if (entry.name.endsWith('.html')) {
-              checked++;
-              for (const m of fs.readFileSync(full, 'utf-8').matchAll(refRe)) {
-                if (!missing.has(m[1]) && !fs.existsSync(path.join(distDir, m[1]))) {
-                  missing.set(m[1], path.relative(distDir, full));
-                }
-              }
-            }
-          }
-        };
-        walk(distDir);
-
-        if (missing.size > 0) {
-          const list = [...missing].map(([asset, page]) => `  ${asset} (first seen in ${page})`).join('\n');
+        if (inlinedCount > 0) {
+          logger.info(`Inlined ${jsCache.size} module script bundle(s) across ${inlinedCount} HTML page(s)`);
+        }
+        if (savedBytes > 0) {
+          logger.info(`Stripped ${(savedBytes / 1024).toFixed(1)} KiB of HTML comments from built pages`);
+        }
+        if (missingAssets.size > 0) {
+          const list = [...missingAssets].map(([asset, page]) => `  ${asset} (first seen in ${page})`).join('\n');
           throw new Error(
-            `Built HTML references ${missing.size} missing asset(s). Clear .cache/astro and rebuild:\n${list}`
+            `Built HTML references ${missingAssets.size} missing asset(s). Clear .cache/astro and rebuild:\n${list}`
           );
         }
-        logger.info(`All /_astro/ CSS and JS references resolve across ${checked} HTML page(s)`);
+        logger.info(`All /_astro/ CSS and JS references resolve across ${checkedPages} HTML page(s)`);
       },
     },
   };
@@ -272,6 +236,9 @@ export default defineConfig({
     inlineStylesheets: 'auto',
   },
   experimental: {
+    // Caches rendered route HTML and sharp image transforms in `.cache/astro`.
+    // Stale cached HTML asset references are guarded at the end of every build by
+    // `postBuildHtml()`, and CI supports `CLEAN_BUILD=1` to purge `.cache/astro`.
     incrementalBuild: true,
   },
   vite: {
@@ -292,10 +259,15 @@ export default defineConfig({
     build: {
       target: ['chrome111', 'safari16.4', 'firefox113'],
       cssTarget: ['chrome111', 'safari16.4', 'firefox113'],
-      // Inline page-specific style chunks (<16 KiB, e.g. BlogPost/Mermaid/Tooltips/YouTube) while
-      // keeping the shared site-wide Tailwind bundle (~102 KiB raw / ~12.4 KiB brotli) as a single
-      // content-hashed external stylesheet (`/_astro/styles.<hash>.css`).
-      assetsInlineLimit: 16384,
+      // Inline page-specific style chunks (<16 KiB) to avoid extra render-blocking CSS requests,
+      // while keeping the shared site-wide Tailwind bundle (~131 KiB raw) as a single external
+      // stylesheet and keeping module scripts > 3 KiB as external immutable /_astro/*.js bundles.
+      assetsInlineLimit: (filePath, content) => {
+        if (filePath.endsWith('.js')) {
+          return content.byteLength <= 3072;
+        }
+        return content.byteLength < 16384;
+      },
       rollupOptions: {
         output: {
           assetFileNames: (assetInfo) => {
@@ -381,9 +353,7 @@ export default defineConfig({
     }),
     sitemapAlias(),
     youtubeThumbnails(),
-    inlineScripts(),
-    stripHtmlComments(),
-    verifyAssetReferences()
+    postBuildHtml()
   ],
   prefetch: {
     prefetchAll: true,

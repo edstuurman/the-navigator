@@ -39,7 +39,7 @@
 - **Configurable Section Navigation & Floating Reading Capsule**: Optional frontmatter-driven section pills (`src/components/SectionNav.astro` & `src/utils/sectionNav.ts`) that morph on scroll into a floating glassmorphic capsule (top-docked on desktop; bottom-docked on mobile with footer collision avoidance) complete with active heading spy, synchronized light/dark theme toggle, site navigation hamburger menu, and back-to-top control.
 - **Interactive 7-Card Homepage Carousels**: GPU-accelerated CSS scroll-snap carousels (`src/scripts/carousel.ts`) across **From the Photo Roll**, **From the Blog**, and **From the Log** with dynamic slide counters, pagination pills, and keyboard/swipe support.
 - **Build-Time Compilers & Persistent Disk Caching**:
-  - **Satori + Resvg OG Cards** (`src/pages/og/[...slug].png.ts` & `src/utils/generateOgImage.ts`) with SHA-256 content-addressed caching in `.cache/og-images/`.
+  - **Satori + Resvg + Sharp MozJPEG OG Cards** (`src/pages/og/[...slug].jpg.ts` & `src/utils/generateOgImage.ts`) with SHA-256 content-addressed caching in `.cache/og-images/`.
   - **Astro Image Cache** relocated to `.cache/astro/` so `npm ci` in CI/CD preserves optimized WebP/AVIF assets across builds (~1.8s warm production builds).
   - **Inline SVG Mermaid Diagrams** (`rehype-mermaid` + `src/plugins/rehype-mermaid-a11y.mjs`) rendered at build time via headless Chromium with zero client Mermaid bundle.
   - **Click-to-Load YouTube Embeds** (`src/plugins/remark-youtube.mjs` + `src/scripts/youtube-embed.ts`): a fenced ```` ```youtube ```` block compiles to a thumbnail + play-button facade cached in `.cache/youtube-thumbs/`, loading the privacy-enhanced iframe only on click.
@@ -154,6 +154,13 @@ Because `npm run build` outputs a pure static `./dist/` directory, you can deplo
 
 Both **GitLab CI/CD** ([`.gitlab-ci.yml`](./.gitlab-ci.yml)) and **GitHub Actions** ([`.github/workflows/deploy.yml`](./.github/workflows/deploy.yml)) ship out of the box across three stages (`infrastructure` → `build` → `deploytos3`), with an automatic **Starter Template Dry-Run Mode** when `S3_BUCKET` and `TF_VAR_environment_domain` are not yet configured in repository variables:
 
+> [!NOTE]
+> **Enabling CI/CD on Your Fork**: Automated CI runs strictly on the production `stuurman.com` repository and is intentionally disabled on the upstream `the-navigator` starter template to conserve shared runner minutes. To enable automated builds on your fork:
+> - **GitLab CI**: If you rename your repository upon forking (e.g. `my-site`), GitLab CI runs automatically out of the box. If your fork retains `navigator` in its project path, set CI/CD Variable `ENABLE_CI = "true"` in **Settings > CI/CD > Variables** (or remove the upstream guard rule under `workflow: rules:` in `.gitlab-ci.yml`).
+> - **GitHub Actions**: Automated `push` triggers are commented out in `.github/workflows/deploy.yml` by default (manual `workflow_dispatch` testing is always available). To trigger builds on every `git push` to `main`, un-comment the `push:` block at lines 6–10 of `.github/workflows/deploy.yml`.
+>
+> See [Part 3 of the Guide](https://the-navigator-sage.vercel.app/blog/2026-11-03-part-3-ci-cd-pipelines-dry-run-mode-and-static-hosting/) for the full walkthrough.
+
 1. **Infrastructure Track (`terraform:bootstrap` → `terraform:plan` → `terraform:apply`)**:
    - Provisions the dedicated S3 state bucket, regional S3 buckets, cross-region replication, S3 Multi-Region Access Point, ACM SSL certificate, CloudFront distribution (with native SigV4a OAC), and Route 53 DNS records.
 2. **Site Build & Deploy Track (`build` → `deploytos3`)**:
@@ -182,3 +189,6 @@ Quick checklist if you fork or adapt this repository for your own site:
 4. *(Optional)* **Cloud Infrastructure**: Set your naked root domain (without `https://` or `www.`, matching your public Route 53 Hosted Zone — e.g. `example.com`):
    - **CI/CD (GitLab or GitHub Actions)**: Set repository variable `TF_VAR_environment_domain` to `example.com` (see [`terraform/README.md`](./terraform/README.md) for the full variable table).
    - **Local Terraform CLI**: Copy `cp terraform/terraform.tfvars.example terraform/terraform.tfvars` and set `environment_domain = "example.com"` (Terraform automatically provisions ACM SSL and Route 53 `A`/`AAAA` records for both `example.com` and `www.example.com`).
+5. *(Optional)* **Enabling Automated CI/CD on Your Fork**:
+   - **GitLab CI**: Set CI/CD variable `ENABLE_CI = "true"` in **Settings > CI/CD > Variables** if your fork project path still contains `navigator`.
+   - **GitHub Actions**: Un-comment the `push:` trigger at lines 6–10 of `.github/workflows/deploy.yml` to trigger automatic builds on `git push` to `main`.

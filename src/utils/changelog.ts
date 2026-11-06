@@ -1,7 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createMarkdownProcessor } from '@astrojs/markdown-remark';
-import { rehypeTechTooltips } from '../plugins/rehype-tech-tooltips.mjs';
 
 export interface ChangelogEntry {
   kind: 'changelog';
@@ -12,7 +11,78 @@ export interface ChangelogEntry {
   title: string;
   tags: string[];
   html: string;
+  previewHtml: string;
+  restHtml?: string;
+  restCount: number;
   rawMarkdown: string;
+}
+
+function splitChangelogMarkdown(md: string): {
+  previewMd: string;
+  restMd: string;
+  restCount: number;
+} {
+  const lines = md.split(/\r?\n/);
+  const previewLines: string[] = [];
+  const restLines: string[] = [];
+  let pendingHeadingLines: string[] = [];
+  let topBullets = 0;
+  let subBullets = 0;
+
+  for (const line of lines) {
+    if (/^###\s+/.test(line)) {
+      if (topBullets >= 3) {
+        restLines.push(line);
+      } else {
+        pendingHeadingLines.push(line);
+      }
+      continue;
+    }
+
+    if (/^-\s+/.test(line)) {
+      topBullets++;
+      subBullets = 0;
+      if (topBullets <= 3) {
+        if (pendingHeadingLines.length > 0) {
+          previewLines.push(...pendingHeadingLines);
+          pendingHeadingLines = [];
+        }
+        previewLines.push(line);
+      } else {
+        if (pendingHeadingLines.length > 0) {
+          restLines.push(...pendingHeadingLines);
+          pendingHeadingLines = [];
+        }
+        restLines.push(line);
+      }
+      continue;
+    }
+
+    if (/^\s{2,}-\s+/.test(line)) {
+      subBullets++;
+      if (topBullets <= 3) {
+        previewLines.push(line);
+      } else if (subBullets <= 1) {
+        restLines.push(line);
+      }
+      continue;
+    }
+
+    if (topBullets === 0 && line.trim() === '') {
+      if (pendingHeadingLines.length > 0) pendingHeadingLines.push(line);
+      else previewLines.push(line);
+    } else if (topBullets <= 3) {
+      previewLines.push(line);
+    } else if (subBullets <= 1) {
+      restLines.push(line);
+    }
+  }
+
+  return {
+    previewMd: previewLines.join('\n').trim(),
+    restMd: restLines.join('\n').trim(),
+    restCount: Math.max(0, topBullets - 3),
+  };
 }
 
 let cachedEntries: ChangelogEntry[] | null = null;
@@ -43,9 +113,7 @@ export async function getChangelogEntries(): Promise<ChangelogEntry[]> {
     });
   }
 
-  const processor = await createMarkdownProcessor({
-    rehypePlugins: [rehypeTechTooltips],
-  });
+  const processor = await createMarkdownProcessor();
   const entries: ChangelogEntry[] = [];
 
   for (let i = 0; i < matches.length; i++) {
@@ -107,7 +175,11 @@ export async function getChangelogEntries(): Promise<ChangelogEntry[]> {
       )
       .replace(/\[`?([^\]`]+)`?\]\(\/?src\/[^)]+\)/g, '`$1`');
 
+    const stripHeadingIds = (h: string) => h.replace(/<h([1-6])\s+id="[^"]*">/g, '<h$1>');
     const rendered = await processor.render(cleanedMarkdown);
+    const { previewMd, restMd, restCount } = splitChangelogMarkdown(cleanedMarkdown);
+    const previewRendered = restCount > 0 ? await processor.render(previewMd) : rendered;
+    const restRendered = restCount > 0 && restMd ? await processor.render(restMd) : null;
 
     entries.push({
       kind: 'changelog',
@@ -116,7 +188,10 @@ export async function getChangelogEntries(): Promise<ChangelogEntry[]> {
       date,
       title,
       tags: Array.from(tagsSet),
-      html: rendered.code,
+      html: stripHeadingIds(rendered.code),
+      previewHtml: stripHeadingIds(previewRendered.code),
+      restHtml: restRendered ? stripHeadingIds(restRendered.code) : undefined,
+      restCount,
       rawMarkdown: sectionBody,
     });
   }

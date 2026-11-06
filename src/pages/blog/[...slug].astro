@@ -2,6 +2,7 @@
 import { type CollectionEntry, getCollection, render } from 'astro:content';
 import BlogPost from '../../layouts/BlogPost.astro';
 import { getReadingTime } from '../../utils/readingTime';
+import { hasVideoEmbed } from '../../utils/postVideo';
 import { computeBlogCacheKey, type AdjacentPost } from '../../utils/blogCache';
 
 export async function getStaticPaths() {
@@ -48,6 +49,8 @@ interface Props {
 const { post, nextPost, prevPost } = Astro.props;
 const { Content, headings } = await render(post);
 const readingTime = getReadingTime(post.body);
+const hasMermaid = /```mermaid\b/.test(post.body ?? '');
+const hasYouTube = hasVideoEmbed(post.body);
 ---
 
 <BlogPost
@@ -57,6 +60,8 @@ const readingTime = getReadingTime(post.body);
 	nextPost={nextPost}
 	prevPost={prevPost}
 	headings={headings}
+	hasMermaid={hasMermaid}
+	hasYouTube={hasYouTube}
 >
 	<Content />
 </BlogPost>

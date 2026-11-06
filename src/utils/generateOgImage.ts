@@ -863,6 +863,7 @@ function ensureCacheDir(): void {
 export function computeOgCacheKey(props: OgImageProps): string {
   const cacheKeyPayload = JSON.stringify({
     v: getTemplateDigest(),
+    format: 'jpeg-q82',
     title: props.title,
     theme: resolveOgTheme(props.theme, props.badge, props.title),
     description: props.description ?? null,
@@ -878,12 +879,12 @@ export function computeOgCacheKey(props: OgImageProps): string {
 }
 
 /**
- * Generate a 1200x630 PNG buffer for Open Graph and Twitter Card sharing,
+ * Generate a 1200x630 JPEG buffer for Open Graph and Twitter Card sharing,
  * backed by a persistent content-addressed disk cache in `.cache/og-images/`.
  */
 export async function generateOgImage(props: OgImageProps): Promise<Buffer> {
   const cacheHash = computeOgCacheKey(props);
-  const cacheFile = path.join(OG_CACHE_DIR, `${cacheHash}.png`);
+  const cacheFile = path.join(OG_CACHE_DIR, `${cacheHash}.jpg`);
 
   try {
     if (fs.existsSync(cacheFile)) {
@@ -915,16 +916,19 @@ export async function generateOgImage(props: OgImageProps): Promise<Buffer> {
   });
 
   const pngBuffer = resvg.render().asPng();
+  const jpegBuffer = await sharp(pngBuffer)
+    .jpeg({ quality: 82, mozjpeg: true })
+    .toBuffer();
 
   try {
     ensureCacheDir();
     const tmpFile = `${cacheFile}.${process.pid}.tmp`;
-    fs.writeFileSync(tmpFile, pngBuffer);
+    fs.writeFileSync(tmpFile, jpegBuffer);
     fs.renameSync(tmpFile, cacheFile);
   } catch {
     // Ignore non-fatal cache write errors
   }
 
-  return pngBuffer;
+  return jpegBuffer;
 }
 

@@ -93,7 +93,7 @@ const blogSections = [
 <BaseLayout
   pageTitle={pageTitle}
   description={description}
-  image="/og/blog.png"
+  image="/og/blog.jpg"
   type="blog"
   breadcrumbs={breadcrumbs}
 >
@@ -106,7 +106,7 @@ const blogSections = [
       <AmbientGlow preset="blog-top" />
 
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
-        <div class="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-8">
+        <div class="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:items-stretch lg:gap-8">
           {posts.slice(0, 1).map((post) => {
             const introParagraphs = getArticleIntroParagraphs(post.body);
             return (
@@ -126,35 +126,37 @@ const blogSections = [
                       playButtonSize="lg"
                     />
                   )}
-                  <div class="flex flex-1 flex-col justify-between p-6">
-                    <div>
+                  <div class="flex min-h-0 flex-1 flex-col justify-between p-6">
+                    <div class="flex min-h-0 flex-1 flex-col">
                       <h2 class="text-3xl font-semibold tracking-tight text-pretty text-gray-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 sm:text-4xl">
                         <a href={`/blog/${post.id}/`}>
                           <span class="absolute inset-0"></span>
                           {post.data.title}
                         </a>
                       </h2>
-                      <p id="featured-desc" class="mt-4 text-base/7 font-medium text-gray-600 dark:text-gray-300">
+                      <p id="featured-desc" class="mt-4 shrink-0 text-base/7 font-medium text-gray-600 dark:text-gray-300">
                         {post.data.description}
                       </p>
                       {introParagraphs.length > 0 && (
-                        <div id="featured-preview-container" class="mt-4 space-y-3 border-t border-gray-100 dark:border-gray-700/60 pt-4 text-sm/6 text-gray-500 dark:text-gray-400">
-                          {introParagraphs.map((para, pIdx) => (
-                            <p data-preview-idx={pIdx} class={pIdx > 0 ? 'hidden' : 'line-clamp-2'}>{para}</p>
-                          ))}
+                        <div
+                          id="featured-preview-container"
+                          class="mt-4 border-t border-gray-100 dark:border-gray-700/60 pt-4 text-sm/6 text-gray-500 dark:text-gray-400 lg:relative lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:[mask-image:linear-gradient(to_bottom,black_calc(100%-2rem),transparent)]"
+                        >
+                          <div class="space-y-3 lg:absolute lg:inset-x-0 lg:top-4 lg:bottom-0 lg:overflow-hidden">
+                            {introParagraphs.map((para, pIdx) => (
+                              <p data-preview-idx={pIdx} class={pIdx > 0 ? 'hidden lg:block' : 'line-clamp-2 lg:line-clamp-none'}>{para}</p>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>
-                    <div id="featured-footer" class="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 dark:border-gray-700/60 pt-3 text-xs">
+                    <div id="featured-footer" class="mt-6 flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-gray-100 dark:border-gray-700/60 pt-3 text-xs">
                       <div class="relative z-10">
                         <TagList tags={post.data.tags} limit={3} />
                       </div>
                       <div class="flex items-center gap-3">
                         <span class="inline-flex items-center gap-1 text-gray-500 dark:text-gray-400">
-                          <svg class="size-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
-                            <circle cx="12" cy="12" r="10" />
-                            <polyline points="12 6 12 12 16 14" />
-                          </svg>
+                          <svg class="size-3.5 shrink-0" aria-hidden="true"><use href="#i-clock" /></svg>
                           {getReadingTime(post.body)}
                         </span>
                         <span class="inline-flex items-center gap-1 text-sm font-semibold text-amber-700 dark:text-amber-500 group-hover:text-amber-600 dark:group-hover:text-amber-400">
@@ -170,8 +172,8 @@ const blogSections = [
             );
           })}
 
-          <div class="mx-auto w-full max-w-2xl max-lg:border-t max-lg:border-gray-200/80 dark:max-lg:border-gray-800 max-lg:pt-12 lg:col-span-6 lg:max-w-none">
-            <div id="blog-right-col" class="flex flex-col gap-10">
+          <div class="mx-auto flex h-full w-full max-w-2xl flex-col max-lg:border-t max-lg:border-gray-200/80 dark:max-lg:border-gray-800 max-lg:pt-12 lg:col-span-6 lg:max-w-none">
+            <div id="blog-right-col" class="flex flex-1 flex-col justify-between gap-10">
               {rightColPosts.map(({ post, video }, rightIdx) => {
                 return (
                 <article class="flex max-w-xl flex-1 flex-col">
@@ -207,10 +209,7 @@ const blogSections = [
                           <TagList tags={post.data.tags} limit={3} singleLine={true} />
                         </div>
                         <span class="inline-flex shrink-0 items-center gap-1 text-gray-500 dark:text-gray-400">
-                          <svg class="size-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
-                            <circle cx="12" cy="12" r="10" />
-                            <polyline points="12 6 12 12 16 14" />
-                          </svg>
+                          <svg class="size-3.5 shrink-0" aria-hidden="true"><use href="#i-clock" /></svg>
                           {getReadingTime(post.body)}
                         </span>
                       </div>
@@ -319,10 +318,7 @@ const blogSections = [
                         </div>
                         <div class="flex items-center gap-3">
                           <span class="inline-flex items-center gap-1 text-gray-500 dark:text-gray-400 shrink-0">
-                            <svg class="size-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
-                              <circle cx="12" cy="12" r="10" />
-                              <polyline points="12 6 12 12 16 14" />
-                            </svg>
+                            <svg class="size-3.5 shrink-0" aria-hidden="true"><use href="#i-clock" /></svg>
                             {getReadingTime(post.body)}
                           </span>
                           <span class="text-sm font-semibold text-amber-700 dark:text-amber-500 group-hover:text-amber-600 dark:group-hover:text-amber-400 inline-flex items-center gap-1">
@@ -354,10 +350,7 @@ const blogSections = [
                       </div>
                       <div class="flex items-center gap-3">
                         <span class="inline-flex items-center gap-1 text-gray-500 dark:text-gray-400 shrink-0">
-                          <svg class="size-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
-                            <circle cx="12" cy="12" r="10" />
-                            <polyline points="12 6 12 12 16 14" />
-                          </svg>
+                          <svg class="size-3.5 shrink-0" aria-hidden="true"><use href="#i-clock" /></svg>
                           {getReadingTime(post.body)}
                         </span>
                         <span class="text-sm font-semibold text-amber-700 dark:text-amber-500 group-hover:text-amber-600 dark:group-hover:text-amber-400 inline-flex items-center gap-1">
@@ -390,201 +383,4 @@ const blogSections = [
       </div>
     </div>
   </div>
-
-  {isInitialView && (
-    <script>
-    function setupFeaturedCardFitter() {
-      const container = document.getElementById('featured-preview-container');
-      const rightColEl = document.getElementById('blog-right-col');
-      const leftArticle = document.getElementById('featured-article');
-      if (!rightColEl || !leftArticle) return;
-      const rightCol: HTMLElement = rightColEl;
-
-      const leftCardEl = leftArticle.querySelector<HTMLElement>('.border-beam-card');
-      if (!leftCardEl) return;
-      const leftCard: HTMLElement = leftCardEl;
-
-      const desc = leftCard.querySelector<HTMLElement>('#featured-desc');
-      const paras = container
-        ? Array.from(container.querySelectorAll<HTMLElement>('[data-preview-idx]'))
-        : [];
-
-      let lastRightHeight = 0;
-
-      function fitFeaturedCard() {
-        const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
-
-        if (!isDesktop) {
-          if (!leftCard.style.height) return;
-          leftCard.style.height = '';
-          rightCol.style.minHeight = '';
-          if (desc) {
-            desc.style.display = '';
-            desc.style.webkitLineClamp = '';
-            desc.style.overflow = '';
-            desc.style.webkitBoxOrient = '';
-          }
-          if (container) {
-            container.style.display = '';
-            paras.forEach((p, idx) => {
-              p.style.display = idx > 0 ? 'none' : '';
-              p.style.webkitLineClamp = idx === 0 ? '2' : '';
-              p.style.webkitBoxOrient = idx === 0 ? 'vertical' : '';
-              p.style.overflow = idx === 0 ? 'hidden' : '';
-            });
-          }
-          return;
-        }
-
-        const leftDate = leftArticle?.firstElementChild as HTMLElement | null;
-        const leftAuthor = leftArticle?.lastElementChild as HTMLElement | null;
-        const footer = document.getElementById('featured-footer');
-        const poster = leftCard.querySelector<HTMLElement>('.youtube-poster-embed');
-        const title = leftCard.querySelector<HTMLElement>('h2');
-
-        // 1. Batch all preparatory DOM resets before reading layout metrics
-        if (rightCol.style.minHeight) rightCol.style.minHeight = '';
-        if (desc && desc.style.webkitLineClamp) {
-          desc.style.display = 'block';
-          desc.style.webkitLineClamp = 'none';
-          desc.style.overflow = '';
-          desc.style.webkitBoxOrient = '';
-        }
-        if (container && paras.length > 0) {
-          container.style.display = '';
-          paras.forEach((p) => {
-            p.style.display = 'block';
-            p.style.webkitLineClamp = 'none';
-            p.style.overflow = '';
-            p.style.webkitBoxOrient = '';
-          });
-        }
-
-        // 2. Single batched geometric read pass (1 layout calculation total)
-        const rightHeight = rightCol?.offsetHeight ?? 0;
-        lastRightHeight = rightHeight;
-        const leftDateHeight = leftDate ? leftDate.offsetHeight : 0;
-        const leftAuthorHeight = leftAuthor ? leftAuthor.offsetHeight : 0;
-        const leftChromeHeight = leftDateHeight + 12 + leftAuthorHeight + 24;
-        const posterHeight = poster ? poster.offsetHeight : 0;
-        const titleHeight = title ? title.offsetHeight : 0;
-        const footerHeight = footer ? footer.offsetHeight : 0;
-        const descHeight = desc ? desc.offsetHeight : 0;
-        const paraHeights = paras.map((p) => p.offsetHeight);
-
-        const cardPaddingY = 48; // p-6 top (24px) + bottom (24px)
-        const titleMarginBottom = 16; // mt-4
-        const footerMarginTop = 24; // mt-6
-
-        const minLeftCardHeight =
-          posterHeight +
-          cardPaddingY +
-          titleHeight +
-          (descHeight > 0 ? titleMarginBottom + descHeight : 0) +
-          footerMarginTop +
-          footerHeight;
-
-        const rightBasedCardHeight = rightHeight - leftChromeHeight;
-        const targetCardHeight = Math.max(rightBasedCardHeight, minLeftCardHeight);
-
-        // 3. Single batched DOM write pass
-        leftCard.style.height = `${targetCardHeight}px`;
-
-        if (minLeftCardHeight > rightBasedCardHeight) {
-          rightCol.style.minHeight = `${targetCardHeight + leftChromeHeight}px`;
-        }
-
-        const availableTextHeight =
-          targetCardHeight -
-          posterHeight -
-          cardPaddingY -
-          titleHeight -
-          titleMarginBottom -
-          footerMarginTop -
-          footerHeight;
-
-        const descLineHeight = 28; // text-base/7
-        const paraLineHeight = 24; // text-sm/6
-        const previewBorderAndGap = 35; // mt-4 (16px) + pt-4 (16px) + 1px border + 2px subpixel buffer
-
-        if (availableTextHeight <= 0) {
-          if (desc) desc.style.display = 'none';
-          if (container) container.style.display = 'none';
-          return;
-        }
-
-        if (descHeight <= availableTextHeight) {
-          if (desc) desc.style.display = 'block';
-          const remainingForPreview = availableTextHeight - descHeight - previewBorderAndGap;
-
-          if (container && paras.length > 0 && remainingForPreview >= paraLineHeight * 1.5) {
-            let usedHeight = 0;
-            const paraGap = 12;
-
-            for (let i = 0; i < paras.length; i++) {
-              const p = paras[i];
-              const naturalHeight = paraHeights[i];
-              const gap = i > 0 ? paraGap : 0;
-              const remaining = remainingForPreview - usedHeight - gap;
-
-              if (naturalHeight <= remaining) {
-                usedHeight += naturalHeight + gap;
-              } else {
-                const linesFit = Math.floor(remaining / paraLineHeight);
-                if (linesFit >= 1) {
-                  p.style.display = '-webkit-box';
-                  p.style.webkitBoxOrient = 'vertical';
-                  p.style.webkitLineClamp = String(linesFit);
-                  p.style.overflow = 'hidden';
-                } else {
-                  p.style.display = 'none';
-                }
-                for (let j = i + 1; j < paras.length; j++) {
-                  paras[j].style.display = 'none';
-                }
-                break;
-              }
-            }
-          } else if (container) {
-            container.style.display = 'none';
-          }
-        } else {
-          if (container) container.style.display = 'none';
-          if (desc) {
-            const descLinesFit = Math.max(1, Math.floor(availableTextHeight / descLineHeight));
-            desc.style.display = '-webkit-box';
-            desc.style.webkitBoxOrient = 'vertical';
-            desc.style.webkitLineClamp = String(descLinesFit);
-            desc.style.overflow = 'hidden';
-          }
-        }
-      }
-
-      let isFitting = false;
-      function scheduleFit() {
-        if (isFitting) return;
-        isFitting = true;
-        fitFeaturedCard();
-        isFitting = false;
-      }
-
-      scheduleFit();
-      window.addEventListener('resize', scheduleFit, { passive: true });
-
-      if (typeof ResizeObserver !== 'undefined') {
-        const ro = new ResizeObserver((entries) => {
-          const nextH = Math.round(entries[0]?.contentRect.height || 0);
-          if (nextH > 0 && Math.abs(nextH - lastRightHeight) > 2) {
-            scheduleFit();
-          }
-        });
-        ro.observe(rightCol);
-        const leftPoster = leftCard.querySelector<HTMLElement>('.youtube-poster-embed');
-        if (leftPoster) ro.observe(leftPoster);
-      }
-    }
-
-      setupFeaturedCardFitter();
-    </script>
-  )}
 </BaseLayout>
