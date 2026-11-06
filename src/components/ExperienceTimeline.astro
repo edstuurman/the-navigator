@@ -3,8 +3,10 @@ import { slugify } from '../utils/slugify';
 import { tagHref, isHardLinkedTag } from '../utils/tagHref';
 import { experiences } from '../data/experiences';
 import { getTagTaxonomy } from '../utils/tagTaxonomy';
+import { isFeatureEnabled, isUrlEnabled } from '../utils/features';
 
 const { contentTagSlugs } = await getTagTaxonomy();
+const tagsEnabled = isFeatureEnabled('tags');
 ---
 
 <section id="experience" class="scroll-mt-16 relative isolate py-20 sm:py-28 bg-gray-50/70 dark:bg-gray-800/30 border-y border-gray-200/70 dark:border-gray-800 transition-colors">
@@ -151,18 +153,28 @@ const { contentTagSlugs } = await getTagTaxonomy();
                   <div class="mt-6 pt-4 border-t border-gray-100 dark:border-gray-700/60 flex flex-wrap items-center gap-1.5">
                     {exp.skills.map((skill) => {
                       const tagSlug = slugify(skill);
-                      const hasContent = contentTagSlugs.has(tagSlug) || isHardLinkedTag(tagSlug);
-                      return (
+                      const candidateHref = tagHref(tagSlug);
+                      const linkHref = isUrlEnabled(candidateHref)
+                        ? candidateHref
+                        : (tagsEnabled ? `/tags/${tagSlug.toLowerCase()}/` : null);
+                      const hasContent =
+                        contentTagSlugs.has(tagSlug) ||
+                        (isHardLinkedTag(tagSlug) && isUrlEnabled(candidateHref));
+                      const badgeClass = hasContent
+                        ? "inline-flex items-center rounded-md bg-amber-50 dark:bg-gray-700/60 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-500 ring-1 ring-inset ring-amber-600/30 dark:ring-amber-500/30 hover:bg-amber-100 dark:hover:bg-gray-700 dark:hover:text-amber-400 transition-colors"
+                        : "inline-flex items-center rounded-md bg-gray-100 dark:bg-gray-700/50 px-2.5 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 ring-1 ring-inset ring-gray-200 dark:ring-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors";
+                      return linkHref ? (
                         <a 
-                          href={tagHref(tagSlug)}
-                          class={hasContent 
-                            ? "inline-flex items-center rounded-md bg-amber-50 dark:bg-gray-700/60 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-500 ring-1 ring-inset ring-amber-600/30 dark:ring-amber-500/30 hover:bg-amber-100 dark:hover:bg-gray-700 dark:hover:text-amber-400 transition-colors"
-                            : "inline-flex items-center rounded-md bg-gray-100 dark:bg-gray-700/50 px-2.5 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 ring-1 ring-inset ring-gray-200 dark:ring-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                          }
+                          href={linkHref}
+                          class={badgeClass}
                           title={hasContent ? `View articles and logs tagged #${skill}` : `View experience tagged #${skill}`}
                         >
                           #{skill}
                         </a>
+                      ) : (
+                        <span class={badgeClass}>
+                          #{skill}
+                        </span>
                       );
                     })}
                   </div>

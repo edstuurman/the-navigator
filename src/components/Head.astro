@@ -3,6 +3,10 @@ import '../styles/global.css';
 import { authorAvatarImage as FallbackImage } from '../utils/authorImages';
 import type { ImageMetadata } from 'astro';
 import { themeConfig } from '../theme.config';
+import { isFeatureEnabled } from '../utils/features';
+
+const showRss = isFeatureEnabled('rss');
+const showLlms = isFeatureEnabled('llms');
 
 export interface BreadcrumbProp {
   name: string;
@@ -196,21 +200,29 @@ const structuredDataGraph = {
 <meta charset="utf-8" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 <link rel="sitemap" href="/sitemap-index.xml" />
-<link rel="alternate" type="text/plain" href="/llms.txt" title="LLMs.txt" />
-<link rel="alternate" type="text/plain" href="/llms-full.txt" title="LLMs full archive" />
-<link rel="alternate" type="application/json" href="/llms.json" title="LLMs.json" />
-<link
-	rel="alternate"
-	type="application/rss+xml"
-	title={`${themeConfig.site.title} (RSS Feed)`}
-	href={new URL('rss.xml', Astro.site)}
-/>
-<link
-	rel="alternate"
-	type="application/atom+xml"
-	title={`${themeConfig.site.title} (Atom Feed)`}
-	href={new URL('atom.xml', Astro.site)}
-/>
+{showLlms && (
+  <>
+    <link rel="alternate" type="text/plain" href="/llms.txt" title="LLMs.txt" />
+    <link rel="alternate" type="text/plain" href="/llms-full.txt" title="LLMs full archive" />
+    <link rel="alternate" type="application/json" href="/llms.json" title="LLMs.json" />
+  </>
+)}
+{showRss && (
+  <>
+    <link
+      rel="alternate"
+      type="application/rss+xml"
+      title={`${themeConfig.site.title} (RSS Feed)`}
+      href={new URL('rss.xml', Astro.site)}
+    />
+    <link
+      rel="alternate"
+      type="application/atom+xml"
+      title={`${themeConfig.site.title} (Atom Feed)`}
+      href={new URL('atom.xml', Astro.site)}
+    />
+  </>
+)}
 <link rel="canonical" href={canonicalURL} />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="generator" content={Astro.generator} />

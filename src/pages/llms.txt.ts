@@ -3,6 +3,7 @@ import { getCollection, getEntry } from 'astro:content';
 import { getTagTaxonomy } from '../utils/tagTaxonomy';
 import { tagHref } from '../utils/tagHref';
 import { siteConfig } from '../site.config';
+import { isFeatureEnabled, isUrlEnabled } from '../utils/features';
 
 /**
  * Build-time generated `/llms.txt` following the llmstxt.org specification.
@@ -13,9 +14,18 @@ export async function GET(context: APIContext) {
   const siteUrl = (context.site ? context.site.href : siteConfig.site.url).replace(/\/+$/, '');
   const abs = (path: string) => `${siteUrl}${path.startsWith('/') ? path : `/${path}`}`;
 
+  const showHome = isFeatureEnabled('home');
+  const showAbout = isFeatureEnabled('about');
+  const showNow = isFeatureEnabled('now');
+  const showLog = isFeatureEnabled('log');
+  const showBlog = isFeatureEnabled('blog');
+  const showPhotography = isFeatureEnabled('photography');
+  const showTags = isFeatureEnabled('tags');
+  const showContact = isFeatureEnabled('contact');
+
   const [posts, taxonomy, homeEntry, aboutEntry] = await Promise.all([
-    getCollection('blog'),
-    getTagTaxonomy(),
+    showBlog ? getCollection('blog') : Promise.resolve([]),
+    showTags ? getTagTaxonomy() : Promise.resolve({ sortedTags: [], photoTags: [], archiveMap: new Map(), contentTagSlugs: new Set() }),
     getEntry('pages', 'home'),
     getEntry('pages', 'about'),
   ]);
@@ -43,7 +53,9 @@ export async function GET(context: APIContext) {
     const desc =
       topicDescriptions[tag.slug] ||
       `${tag.count} item${tag.count === 1 ? '' : 's'} across articles, operational logs, and career highlights.`;
-    return `- [${tag.name}](${abs(tagHref(tag.slug))}): ${desc}`;
+    const candidateHref = tagHref(tag.slug);
+    const resolvedHref = isUrlEnabled(candidateHref) ? candidateHref : `/tags/${tag.slug}/`;
+    return `- [${tag.name}](${abs(resolvedHref)}): ${desc}`;
   });
 
   const introSummary = homeEntry?.data.intro
@@ -58,6 +70,19 @@ export async function GET(context: APIContext) {
     siteConfig.socials.instagram ? `- **Instagram:** ${siteConfig.socials.instagram}` : '',
   ].filter(Boolean);
 
+  const corePageLines = [
+    showHome ? `- [Home](${abs('/')}): ${homeEntry?.data.description ?? siteConfig.site.description}` : '',
+    showAbout ? `- [About](${abs('/about/')}): ${aboutEntry?.data.description ?? 'Background, career history, and recommendations.'}` : '',
+    showNow ? `- [Now](${abs('/now/')}): Living snapshot of current projects and focus.` : '',
+    showLog
+      ? `- [Log](${abs('/log/')}): ${showPhotography ? 'Operational field notes, status-updates, site changelogs, and photo rolls.' : 'Operational field notes, status-updates, and site changelogs.'}`
+      : '',
+    showBlog ? `- [Blog](${abs('/blog/')}): Complete archive of technical write-ups, architecture case studies, and homelab experiments.` : '',
+    showPhotography ? `- [Photography](${abs('/photography/')}): Curated portfolio of landscape, architecture, and street photography.` : '',
+    showTags ? `- [Tags & Topics](${abs('/tags/')}): Taxonomy of technical topics and categorized posts.` : '',
+    showContact ? `- [Contact](${abs('/contact/')}): Direct contact form and social channels.` : '',
+  ].filter(Boolean);
+
   const content = [
     `# ${siteConfig.site.title}`,
     '',
@@ -70,29 +95,13 @@ export async function GET(context: APIContext) {
     `- **Location:** ${siteConfig.author.location}`,
     `- **Website:** ${siteUrl}`,
     ...socialProfileLines,
-    '',
-    '## Core Pages',
-    '',
-    `- [Home](${abs('/')}): ${homeEntry?.data.description ?? siteConfig.site.description}`,
-    `- [About](${abs('/about/')}): ${aboutEntry?.data.description ?? 'Background, career history, and recommendations.'}`,
-    `- [Now](${abs('/now/')}): Living snapshot of current projects and focus.`,
-    `- [Log](${abs('/log/')}): Operational field notes, status-updates, site changelogs, and photo rolls.`,
-    `- [Blog](${abs('/blog/')}): Complete archive of technical write-ups, architecture case studies, and homelab experiments.`,
-    `- [Photography](${abs('/photography/')}): Curated portfolio of landscape, architecture, and street photography.`,
-    `- [Tags & Topics](${abs('/tags/')}): Taxonomy of technical topics and categorized posts.`,
-    `- [Contact](${abs('/contact/')}): Direct contact form and social channels.`,
-    '',
-    '## Engineering Articles',
-    '',
-    ...articleLines,
-    '',
-    '## Topics & Taxonomy',
-    '',
-    ...topicLines,
+    ...(corePageLines.length > 0 ? ['', '## Core Pages', '', ...corePageLines] : []),
+    ...(showBlog && articleLines.length > 0 ? ['', '## Engineering Articles', '', ...articleLines] : []),
+    ...(showTags && topicLines.length > 0 ? ['', '## Topics & Taxonomy', '', ...topicLines] : []),
     '',
     '## Full Context & Machine-Readable Indexes',
     '',
-    `- [Full Site Archive (llms-full.txt)](${abs('/llms-full.txt')}): Complete, concatenated Markdown archive of all articles, career history, operational logs, and photography metadata for direct ingestion into LLMs or RAG systems.`,
+    `- [Full Site Archive (llms-full.txt)](${abs('/llms-full.txt')}): Complete, concatenated Markdown archive of all enabled site collections for direct ingestion into LLMs or RAG systems.`,
     `- [Structured Index (llms.json)](${abs('/llms.json')}): Machine-readable JSON index of pages, articles, topics, feeds, and LLM files, generated at build time.`,
     '',
   ].join('\n');

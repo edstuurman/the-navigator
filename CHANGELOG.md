@@ -4,7 +4,15 @@ All notable changes to this starter theme and infrastructure blueprint are docum
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [2026-11-06] — The Navigator v1.2.0 Release
+## [2026-11-06] — The Navigator v1.3.0 Release
+
+### Added & Changed
+- **Modular Feature Toggles**: Every major site section (`home`, `about`, `now`, `blog`, `photography`, `log`, `tags`, `contact`, `contactForm`, `rss`, and `llms`) can now be toggled on or off in one place. Turning a feature off skips building its pages and automatically removes its menu links, homepage carousel, [`/log/`](/log/) filter tab, [`/tags/`](/tags/) section, sitemap entries, and RSS/AI feed items.
+- **Configurable Root Homepage (`defaultHomePage`)**: Any enabled section (such as [`/blog/`](/blog/), [`/about/`](/about/), or [`/photography/`](/photography/)) can now be set as the root [`/`](/) front page instead of the multi-stream overview.
+- **Optional Contact Form**: The Formspree message form on [`/contact/`](/contact/), [`/about/`](/about/), and blog articles can now be disabled independently (`contactForm: false` or an empty endpoint) while keeping email and social links active.
+- **Streamlined Starter Documentation**: Simplified the README and [**Part 1 Setup Guide**](/blog/2026-11-03-part-1-customizing-this-astro-theme/) into a clear, jargon-free tutorial with prominent feature toggle examples.
+
+## [2026-11-05] — The Navigator v1.2.0 Release
 
 ### Changed & Optimized
 - **Lightweight Social Preview Cards**: Converted all Open Graph link preview cards to optimized MozJPEG images, cutting file size by 88% for fast, crisp link sharing in messaging apps and social feeds.

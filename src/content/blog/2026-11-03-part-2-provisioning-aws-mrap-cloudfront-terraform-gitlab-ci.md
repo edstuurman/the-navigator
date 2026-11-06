@@ -22,9 +22,9 @@ sectionNav: "h1 to h2"
 >
 > Grab a coffee during your initial `terraform apply`—subsequent runs and site deployments (`scripts/s3-deploy.sh`) complete in **~10–15 seconds**.
 
-The `terraform/` directory provisions an optional, enterprise-grade multi-region <abbr>AWS</abbr> static hosting stack built around four core capabilities:
+The `terraform/` directory provisions an optional, enterprise-grade multi-region AWS static hosting stack built around four core capabilities:
 
-1. **Native CloudFront SigV4a Origin Access Control (<abbr>OAC</abbr>)**: <abbr>CloudFront</abbr> signs requests directly to the <abbr>S3</abbr> Multi-Region Access Point (<abbr>MRAP</abbr>) origin using `signing_protocol = "sigv4a"`, requiring zero `Lambda@Edge` functions.
+1. **Native CloudFront SigV4a Origin Access Control (OAC)**: CloudFront signs requests directly to the S3 Multi-Region Access Point (MRAP) origin using `signing_protocol = "sigv4a"`, requiring zero `Lambda@Edge` functions.
 2. **CloudFront Function (`viewer-request`)**: Handles apex-to-`www` `301` redirects (`example.com` → `https://www.example.com`) and static directory index rewrites (`/about/` → `/about/index.html`) at the edge.
 3. **Managed Security Response Headers (`Managed-SecurityHeadersPolicy`)**: Attaches AWS's managed security headers policy (`Strict-Transport-Security`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy`, and `X-XSS-Protection`) at the CloudFront edge.
 4. **Terraform `>= 1.10` Native S3 State Locking & AWS Provider `~> 6.0`**: Remote state locking uses native S3 `.tflock` lockfiles (`use_lockfile = true` without DynamoDB), and multi-region S3 buckets use the AWS Provider 6.0 per-resource `region` attribute.
@@ -83,13 +83,13 @@ Before running `terraform:bootstrap` or `terraform:apply`, make sure you have th
    - Standard AWS account with default regions enabled. *(Note: CloudFront OAC for S3 Multi-Region Access Points supports all 17 default-enabled AWS regions; opt-in regions are not supported by AWS for MRAP OAC.)*
 2. **A Registered Domain Hosted on Amazon Route 53**:
    - Your root domain (e.g. `example.com`) must already exist as a **Public Hosted Zone** in Route 53 (whether registered directly through Route 53 or an external registrar).
-   - **Verify Nameservers (`NS`) First**: If your domain was registered outside AWS, ensure its `NS` records at your registrar already point to the four Route 53 nameservers listed in your Hosted Zone. During `terraform apply`, `aws_acm_certificate_validation` waits for public DNS validation of the <abbr>ACM</abbr> <abbr>TLS</abbr> certificate (`example.com` and `*.example.com` in `us-east-1`); if your domain's nameservers don't delegate to Route 53 yet, certificate validation will wait until they do.
+   - **Verify Nameservers (`NS`) First**: If your domain was registered outside AWS, ensure its `NS` records at your registrar already point to the four Route 53 nameservers listed in your Hosted Zone. During `terraform apply`, `aws_acm_certificate_validation` waits for public DNS validation of the ACM TLS certificate (`example.com` and `*.example.com` in `us-east-1`); if your domain's nameservers don't delegate to Route 53 yet, certificate validation will wait until they do.
 3. **AWS IAM Credentials (`AWS_ACCESS_KEY_ID` & `AWS_SECRET_ACCESS_KEY`)**:
    - An IAM User or CI/CD role with permissions to provision and manage:
      - **S3 & S3 Control**: Regional buckets, versioning, encryption, lifecycle rules, replication, and Multi-Region Access Points (`s3:*`, `s3control:*`)
-     - **CloudFront**: Distributions, SigV4a Origin Access Control (<abbr>OAC</abbr>), and CloudFront Functions (`cloudfront:*`)
+     - **CloudFront**: Distributions, SigV4a Origin Access Control (OAC), and CloudFront Functions (`cloudfront:*`)
      - **ACM (`us-east-1`)**: Public SSL/TLS certificate creation and DNS validation (`acm:*`)
-     - **Route 53**: Hosted Zone lookup plus ACM validation `CNAME` and `A` (<abbr>IPv4</abbr>) / `AAAA` (<abbr>IPv6</abbr>) Alias records (`route53:*`)
+     - **Route 53**: Hosted Zone lookup plus ACM validation `CNAME` and `A` (IPv4) / `AAAA` (IPv6) Alias records (`route53:*`)
      - **IAM**: Creating and attaching the least-privilege S3 Cross-Region Replication role (`iam:CreateRole`, `iam:CreatePolicy`, `iam:AttachRolePolicy`, `iam:PassRole`)
 4. **Your Site Domain Configured in `src/site.config.ts` ([Part 1](/blog/2026-11-03-part-1-customizing-this-astro-theme/))**:
    - Ensure `site.url` and `site.domain` in `src/site.config.ts` match your Route 53 domain so build-time canonical links, sitemaps, feeds, and Open Graph cards match your live infrastructure.

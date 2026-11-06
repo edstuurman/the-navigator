@@ -13,6 +13,7 @@ import { rehypeMermaidA11y } from './src/plugins/rehype-mermaid-a11y.mjs';
 import { rehypeTechTooltips, TECH_TOOLTIPS_DIGEST } from './src/plugins/rehype-tech-tooltips.mjs';
 import { getImagesForUrl, getLastModForUrl } from './src/utils/sitemap-images.mjs';
 import { themeConfig } from './src/theme.config.ts';
+import { isFeatureEnabled, isUrlEnabled } from './src/utils/features.ts';
 import rehypeMermaid from 'rehype-mermaid';
 
 /**
@@ -81,6 +82,31 @@ function postBuildHtml() {
         const distDir = fileURLToPath(dir);
         const astroDir = path.join(distDir, '_astro');
         const ytOutDir = path.join(distDir, THUMB_PUBLIC_PREFIX.slice(1));
+
+        // 0. Prune any disabled top-level feature directories or feed files from dist/
+        const featureDirs = /** @type {const} */ ([
+          'about',
+          'now',
+          'blog',
+          'photography',
+          'log',
+          'tags',
+          'contact',
+        ]);
+        for (const seg of featureDirs) {
+          if (!isFeatureEnabled(seg)) {
+            fs.rmSync(path.join(distDir, seg), { recursive: true, force: true });
+          }
+        }
+        if (!isFeatureEnabled('rss')) {
+          fs.rmSync(path.join(distDir, 'rss.xml'), { force: true });
+          fs.rmSync(path.join(distDir, 'atom.xml'), { force: true });
+        }
+        if (!isFeatureEnabled('llms')) {
+          fs.rmSync(path.join(distDir, 'llms.txt'), { force: true });
+          fs.rmSync(path.join(distDir, 'llms-full.txt'), { force: true });
+          fs.rmSync(path.join(distDir, 'llms.json'), { force: true });
+        }
 
         const MAX_INLINE_SCRIPT_BYTES = 3072;
         /** @type {Map<string, string>} */
@@ -182,6 +208,18 @@ function postBuildHtml() {
                 savedBytes += beforeStripLen - html.length;
               }
 
+              // 3b. Unwrap inline <a href="/..."> links pointing to disabled features
+              // (e.g. inside Markdown article prose or frontmatter HTML blocks)
+              html = html.replace(
+                /<a\b[^>]*\bhref="(\/[^"#?]*)(?:[?#][^"]*)?"[^>]*>([\s\S]*?)<\/a>/gi,
+                (fullMatch, href, innerHtml) => {
+                  if (href.startsWith('/_astro/') || href.startsWith('/favicon') || href.startsWith('/og/')) {
+                    return fullMatch;
+                  }
+                  return isUrlEnabled(href) ? fullMatch : innerHtml;
+                }
+              );
+
               // Write HTML at most once per page
               if (html !== original) {
                 fs.writeFileSync(full, html);
@@ -281,9 +319,11 @@ export default defineConfig({
     },
   },
   site: themeConfig.site.url,
-  redirects: {
-    '/tags/infra': '/tags/infrastructure/',
-  },
+  redirects: isFeatureEnabled('tags')
+    ? {
+        '/tags/infra': '/tags/infrastructure/',
+      }
+    : {},
   markdown: {
     syntaxHighlight: {
       type: 'shiki',
@@ -338,6 +378,9 @@ export default defineConfig({
   integrations: [
     sitemap({
       xslURL: '/sitemap-style.xsl',
+      filter(page) {
+        return isUrlEnabled(page);
+      },
       serialize(item) {
         const lastmod = getLastModForUrl(item);
         if (lastmod) {

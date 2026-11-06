@@ -35,7 +35,7 @@ faq:
       description: "Static compilation and multi-region AWS replication."
       items:
         - question: "How is this website built and hosted?"
-          answerHtml: '<p>The site compiles to 100% static HTML, CSS, and WebP assets using <strong class="font-semibold text-gray-900 dark:text-gray-100">Astro 7.4</strong> and <strong class="font-semibold text-gray-900 dark:text-gray-100">Tailwind CSS v4</strong>. Build artifacts can be deployed to any static host, or provisioned across regional AWS S3 buckets behind an S3 Multi-Region Access Point (<abbr title="Multi-Region Access Point">MRAP</abbr>) and CloudFront SigV4a Origin Access Control using the included Terraform stack.</p>'
+          answerHtml: '<p>The site compiles to 100% static HTML, CSS, and WebP assets using <strong class="font-semibold text-gray-900 dark:text-gray-100">Astro 7.4</strong> and <strong class="font-semibold text-gray-900 dark:text-gray-100">Tailwind CSS v4</strong>. Build artifacts can be deployed to any static host, or provisioned across regional AWS S3 buckets behind an S3 Multi-Region Access Point (MRAP) and CloudFront SigV4a Origin Access Control using the included Terraform stack.</p>'
 contactSection:
   title: "Get in touch"
   subtitle: "Have a question about cloud architecture, distributed reliability, or this starter theme? Send a message below."

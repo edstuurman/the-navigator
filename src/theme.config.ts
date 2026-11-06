@@ -14,10 +14,59 @@ import { siteConfig, type SiteIdentityConfig } from './site.config.ts';
 export interface NavLinkConfig {
   label: string;
   href: string;
-  /** Set to `false` to hide this route from the header and floating navigation menus */
+  /**
+   * Set to `false` to disable this section entirely (hides it from the header/floating menus,
+   * skips building its routes/sub-streams, and removes its carousels, tag sections, and feed entries).
+   */
   enabled?: boolean;
   /** Additional path prefixes that should highlight this nav item as active */
   activePrefixes?: string[];
+}
+
+export type HomePageKey =
+  | 'home'
+  | 'blog'
+  | 'about'
+  | 'now'
+  | 'photography'
+  | 'log'
+  | 'tags'
+  | 'contact';
+
+export type FeatureKey =
+  | HomePageKey
+  | 'contactForm'
+  | 'rss'
+  | 'llms';
+
+export interface FeaturesConfig {
+  /**
+   * Which section is rendered at the root `/` URL (default: `'home'`).
+   * For example, set `defaultHomePage: 'blog'` to make the blog index the front page of your site.
+   */
+  defaultHomePage: HomePageKey;
+  /** Enable the `/home` personal overview & multi-stream carousels page (`true` by default) */
+  home: boolean;
+  /** Enable `/about/`, career experience timeline, and author profile links (`true` by default) */
+  about: boolean;
+  /** Enable `/now/` current focus page (`true` by default) */
+  now: boolean;
+  /** Enable `/blog/`, article routes, homepage blog carousel, and tag article listings (`true` by default) */
+  blog: boolean;
+  /** Enable `/photography/`, photo routes, homepage photo roll, `/log/photos/`, and photo feeds (`true` by default) */
+  photography: boolean;
+  /** Enable `/log/`, status micro-updates, changelog stream, and homepage log carousel (`true` by default) */
+  log: boolean;
+  /** Enable `/tags/` topic index, `/tags/[tag]/` archive pages, and interactive tag badges (`true` by default) */
+  tags: boolean;
+  /** Enable `/contact/` page and contact CTAs (`true` by default) */
+  contact: boolean;
+  /** Enable the Formspree `<ContactForm />` on `/contact/`, `/about/`, and at the bottom of blog articles (`true` by default) */
+  contactForm: boolean;
+  /** Enable `/rss.xml` and `/atom.xml` syndication feeds (`true` by default) */
+  rss: boolean;
+  /** Enable `/llms.txt`, `/llms-full.txt`, and `/llms.json` AI discovery feeds (`true` by default) */
+  llms: boolean;
 }
 
 export interface PoweredByLinkConfig {
@@ -45,8 +94,9 @@ export interface ThemeMechanicsConfig {
 
   integrations: {
     /**
-     * Formspree endpoint for the static `/contact/` form (`src/components/ContactForm.astro`).
-     * Create a free account at https://formspree.io and paste your form URL here.
+     * Optional Formspree endpoint for the message form (`src/components/ContactForm.astro`).
+     * Create a free account at https://formspree.io and paste your form URL here,
+     * or set `features.contactForm: false` (or leave `endpoint` empty) to disable the form.
      */
     formspree: {
       endpoint: string;
@@ -67,6 +117,13 @@ export interface ThemeMechanicsConfig {
     /** Primary site navigation links rendered in the top bar and floating capsule menu */
     items: NavLinkConfig[];
   };
+
+  /**
+   * End-to-end feature toggles and configurable root homepage.
+   * Disabling a feature here (or setting `enabled: false` on its item in `navigation.items`)
+   * completely disables its routes, carousels, sub-streams, tag sections, and feed entries.
+   */
+  features: FeaturesConfig;
 
   pagination: {
     /** Number of older blog articles per page on `/blog/` */
@@ -149,6 +206,21 @@ export const themeMechanics: ThemeMechanicsConfig = {
     ],
   },
 
+  features: {
+    defaultHomePage: 'home',
+    home: true,
+    about: true,
+    now: true,
+    blog: true,
+    photography: true,
+    log: true,
+    tags: true,
+    contact: true,
+    contactForm: true,
+    rss: true,
+    llms: true,
+  },
+
   pagination: {
     olderBlogsCount: 20,
     logCount: 20,
@@ -168,7 +240,7 @@ export const themeMechanics: ThemeMechanicsConfig = {
 
   footer: {
     siteColumnTitle: 'Example.com',
-    showPoweredBy: true,
+    showPoweredBy: false,
     poweredByLinks: [
       { label: 'AWS S3', href: 'https://aws.amazon.com/s3/', icon: 's3' },
       { label: 'AWS MRAP', href: 'https://aws.amazon.com/s3/features/multi-region-access-points/', icon: 'mrap' },

@@ -14,6 +14,10 @@ import type { CollectionEntry } from 'astro:content';
 import type { MarkdownHeading } from 'astro';
 import { resolveBlogSections } from '../utils/sectionNav';
 import { themeConfig } from '../theme.config';
+import { isContactFormEnabled, isFeatureEnabled } from '../utils/features';
+
+const showAbout = isFeatureEnabled('about');
+const showContactForm = isContactFormEnabled();
 
 type AdjacentPost = {
   id: string;
@@ -182,46 +186,77 @@ const ogImage = heroImage || (id ? `/og/blog/${id}.jpg` : '/og/blog.jpg');
       )}
 
       <!-- About the Author Box -->
-      <a
-        href="/about/"
-        class="border-beam-card group mt-12 block rounded-2xl p-6 sm:p-8 shadow-lg ring-1 ring-gray-900/5 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm dark:ring-white/10 transition-all duration-200 hover:shadow-xl cursor-pointer no-underline text-inherit"
-      >
-        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-5">
-          <div class="shrink-0">
-            <Image
-              src={authorImage}
-              alt={author}
-              width={128}
-              height={128}
-              widths={[64, 128]}
-              sizes="64px"
-              quality={70}
-              loading="lazy"
-              class="size-16 rounded-full object-cover ring-2 ring-amber-600/30 group-hover:ring-amber-600 transition"
-            />
+      {showAbout ? (
+        <a
+          href="/about/"
+          class="border-beam-card group mt-12 block rounded-2xl p-6 sm:p-8 shadow-lg ring-1 ring-gray-900/5 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm dark:ring-white/10 transition-all duration-200 hover:shadow-xl cursor-pointer no-underline text-inherit"
+        >
+          <div class="flex flex-col sm:flex-row items-start sm:items-center gap-5">
+            <div class="shrink-0">
+              <Image
+                src={authorImage}
+                alt={author}
+                width={128}
+                height={128}
+                widths={[64, 128]}
+                sizes="64px"
+                quality={70}
+                loading="lazy"
+                class="size-16 rounded-full object-cover ring-2 ring-amber-600/30 group-hover:ring-amber-600 transition"
+              />
+            </div>
+            <div class="space-y-1">
+              <p class="text-xs font-semibold tracking-wider uppercase text-amber-700 dark:text-amber-500">About the author</p>
+              <h2 class="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition flex items-center gap-1.5">
+                <span>{author}</span>
+                <span class="text-amber-600 dark:text-amber-500 text-sm font-normal group-hover:translate-x-1 transition-transform" aria-hidden="true">&rarr;</span>
+              </h2>
+              <p class="text-sm/6 text-gray-600 dark:text-gray-300">
+                {themeConfig.author.bio}
+              </p>
+            </div>
           </div>
-          <div class="space-y-1">
-            <p class="text-xs font-semibold tracking-wider uppercase text-amber-700 dark:text-amber-500">About the author</p>
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition flex items-center gap-1.5">
-              <span>{author}</span>
-              <span class="text-amber-600 dark:text-amber-500 text-sm font-normal group-hover:translate-x-1 transition-transform" aria-hidden="true">&rarr;</span>
-            </h2>
-            <p class="text-sm/6 text-gray-600 dark:text-gray-300">
-              {themeConfig.author.bio}
-            </p>
+        </a>
+      ) : (
+        <div class="mt-12 block rounded-2xl p-6 sm:p-8 shadow-lg ring-1 ring-gray-900/5 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm dark:ring-white/10">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center gap-5">
+            <div class="shrink-0">
+              <Image
+                src={authorImage}
+                alt={author}
+                width={128}
+                height={128}
+                widths={[64, 128]}
+                sizes="64px"
+                quality={70}
+                loading="lazy"
+                class="size-16 rounded-full object-cover ring-2 ring-amber-600/30"
+              />
+            </div>
+            <div class="space-y-1">
+              <p class="text-xs font-semibold tracking-wider uppercase text-amber-700 dark:text-amber-500">About the author</p>
+              <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <span>{author}</span>
+              </h2>
+              <p class="text-sm/6 text-gray-600 dark:text-gray-300">
+                {themeConfig.author.bio}
+              </p>
+            </div>
           </div>
         </div>
-      </a>
+      )}
 
       <!-- Feedback / Discussion -->
-      <div class="mt-12">
-        <ContactForm 
-          title="Thoughts or questions on this article?"
-          subtitle="Found a bug, tested a similar setup, or want to discuss the details? Drop a message below."
-          subject={`Feedback on: ${title}`}
-          compact={true}
-        />
-      </div>
+      {showContactForm && (
+        <div class="mt-12">
+          <ContactForm 
+            title="Thoughts or questions on this article?"
+            subtitle="Found a bug, tested a similar setup, or want to discuss the details? Drop a message below."
+            subject={`Feedback on: ${title}`}
+            compact={true}
+          />
+        </div>
+      )}
     </div>
   </article>
 

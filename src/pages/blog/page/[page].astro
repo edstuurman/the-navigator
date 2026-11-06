@@ -2,8 +2,12 @@
 import { getCollection } from 'astro:content';
 import BlogIndexView from '../../../components/pages/BlogIndexView.astro';
 import { OLDER_BLOGS_PAGE_SIZE } from '../../../utils/pagination';
+import { isFeatureEnabled } from '../../../utils/features';
 
 export async function getStaticPaths() {
+  if (!isFeatureEnabled('blog')) {
+    return [];
+  }
   const posts = await getCollection('blog');
   const olderPostsCount = Math.max(0, posts.length - 3);
   const totalPages = Math.ceil(olderPostsCount / OLDER_BLOGS_PAGE_SIZE);

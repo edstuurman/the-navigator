@@ -13,12 +13,12 @@ nowSections:
   - icon: "engineering"
     title: "Engineering Focus"
     paragraphs:
-      - '<strong class="font-semibold text-gray-900 dark:text-white">Multi-Region Edge Delivery:</strong> Refining declarative <abbr>Terraform</abbr> blueprints for globally replicated <abbr>S3</abbr> Multi-Region Access Points (<abbr>MRAP</abbr>) behind <abbr>CloudFront</abbr> native <abbr>SigV4A</abbr> Origin Access Control (<abbr>OAC</abbr>).'
-      - '<strong class="font-semibold text-gray-900 dark:text-white">Zero-Runtime Static Tooling:</strong> Building build-time Remark and Rehype compilers for inline <abbr>SVG</abbr> diagrams, zero-JS <abbr>AST</abbr> tooltips, and content-addressed Open Graph card pipelines.'
+      - '<strong class="font-semibold text-gray-900 dark:text-white">Multi-Region Edge Delivery:</strong> Refining declarative Terraform blueprints for globally replicated S3 Multi-Region Access Points (MRAP) behind CloudFront native SigV4A Origin Access Control (OAC).'
+      - '<strong class="font-semibold text-gray-900 dark:text-white">Zero-Runtime Static Tooling:</strong> Building build-time Remark and Rehype compilers for inline SVG diagrams, zero-JS AST tooltips, and content-addressed Open Graph card pipelines.'
   - icon: "homelab"
     title: "In the Homelab"
     paragraphs:
-      - "Running a quiet, low-power <abbr>Proxmox</abbr> VE cluster backed by <abbr>NVMe</abbr> <abbr>ZFS</abbr> mirrors passed through via <abbr>PCIe</abbr> <abbr>HBA</abbr>, segmented across isolated <abbr>VLAN</abbr>s with automated off-site encrypted snapshots."
+      - "Running a quiet, low-power Proxmox VE cluster backed by NVMe ZFS mirrors passed through via PCIe HBA, segmented across isolated VLANs with automated off-site encrypted snapshots."
   - icon: "offline"
     title: "Hands-On & Offline"
     subsections:

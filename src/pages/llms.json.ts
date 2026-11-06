@@ -5,6 +5,7 @@ import { getTagTaxonomy } from '../utils/tagTaxonomy';
 import { tagHref } from '../utils/tagHref';
 import { pictureLogs } from '../utils/pictureLogs';
 import { siteConfig } from '../site.config';
+import { isFeatureEnabled, isUrlEnabled } from '../utils/features';
 
 /**
  * Machine-readable counterpart to `/llms.txt` and `/llms-full.txt`.
@@ -15,7 +16,20 @@ export async function GET(context: APIContext) {
   const siteUrl = (context.site ? context.site.href : siteConfig.site.url).replace(/\/+$/, '');
   const abs = (path: string) => `${siteUrl}${path.startsWith('/') ? path : `/${path}`}`;
 
-  const [posts, taxonomy] = await Promise.all([getCollection('blog'), getTagTaxonomy()]);
+  const showHome = isFeatureEnabled('home');
+  const showAbout = isFeatureEnabled('about');
+  const showNow = isFeatureEnabled('now');
+  const showLog = isFeatureEnabled('log');
+  const showBlog = isFeatureEnabled('blog');
+  const showPhotography = isFeatureEnabled('photography');
+  const showTags = isFeatureEnabled('tags');
+  const showContact = isFeatureEnabled('contact');
+  const showRss = isFeatureEnabled('rss');
+
+  const [posts, taxonomy] = await Promise.all([
+    showBlog ? getCollection('blog') : Promise.resolve([]),
+    showTags ? getTagTaxonomy() : Promise.resolve({ sortedTags: [], photoTags: [], archiveMap: new Map(), contentTagSlugs: new Set() }),
+  ]);
 
   const articles = posts
     .slice()
@@ -30,22 +44,39 @@ export async function GET(context: APIContext) {
       tags: post.data.tags,
     }));
 
-  const topics = taxonomy.sortedTags.map((tag) => ({
-    name: tag.name,
-    url: abs(tagHref(tag.slug)),
-    counts: {
-      total: tag.count,
-      articles: tag.blogCount,
-      log: tag.logCount,
-      photos: tag.photoCount,
-      career: tag.expCount,
-    },
-  }));
+  const topics = taxonomy.sortedTags.map((tag) => {
+    const candidateHref = tagHref(tag.slug);
+    const resolvedHref = isUrlEnabled(candidateHref) ? candidateHref : `/tags/${tag.slug}/`;
+    return {
+      name: tag.name,
+      url: abs(resolvedHref),
+      counts: {
+        total: tag.count,
+        articles: tag.blogCount,
+        log: tag.logCount,
+        photos: tag.photoCount,
+        career: tag.expCount,
+      },
+    };
+  });
 
-  const newestPhoto = pictureLogs.reduce<Date | null>(
-    (latest, p) => (!latest || p.pubDate > latest ? p.pubDate : latest),
-    null
-  );
+  const newestPhoto = showPhotography
+    ? pictureLogs.reduce<Date | null>(
+        (latest, p) => (!latest || p.pubDate > latest ? p.pubDate : latest),
+        null,
+      )
+    : null;
+
+  const pages = [
+    showHome ? { name: 'Home', url: abs('/'), description: 'Overview, featured photography, and recent articles.' } : null,
+    showAbout ? { name: 'About', url: abs('/about/'), description: 'Career history, homelab philosophy, and recommendations.' } : null,
+    showNow ? { name: 'Now', url: abs('/now/'), description: 'What Ed is currently working on and focused on.' } : null,
+    showLog ? { name: 'Log', url: abs('/log/'), description: showPhotography ? 'Micro-updates, site changelogs, and photo rolls.' : 'Micro-updates and site changelogs.' } : null,
+    showBlog ? { name: 'Blog', url: abs('/blog/'), description: 'Technical articles and homelab write-ups.' } : null,
+    showPhotography ? { name: 'Photography', url: abs('/photography/'), description: 'Portfolio of landscape, architecture, and street photography.' } : null,
+    showTags ? { name: 'Tags', url: abs('/tags/'), description: 'Cross-collection topic directory.' } : null,
+    showContact ? { name: 'Contact', url: abs('/contact/'), description: 'How to get in touch.' } : null,
+  ].filter(Boolean);
 
   const body = {
     $schema: abs('/llms.json'),
@@ -86,27 +117,21 @@ export async function GET(context: APIContext) {
       },
     ],
     feeds: {
-      rss: abs('/rss.xml'),
-      atom: abs('/atom.xml'),
+      ...(showRss ? { rss: abs('/rss.xml'), atom: abs('/atom.xml') } : {}),
       sitemap: abs('/sitemap-index.xml'),
     },
-    pages: [
-      { name: 'Home', url: abs('/'), description: 'Overview, featured photography, and recent articles.' },
-      { name: 'About', url: abs('/about/'), description: 'Career history, homelab philosophy, and recommendations.' },
-      { name: 'Now', url: abs('/now/'), description: 'What Ed is currently working on and focused on.' },
-      { name: 'Log', url: abs('/log/'), description: 'Micro-updates, site changelogs, and photo rolls.' },
-      { name: 'Blog', url: abs('/blog/'), description: 'Technical articles and homelab write-ups.' },
-      { name: 'Photography', url: abs('/photography/'), description: 'Portfolio of landscape, architecture, and street photography.' },
-      { name: 'Tags', url: abs('/tags/'), description: 'Cross-collection topic directory.' },
-      { name: 'Contact', url: abs('/contact/'), description: 'How to get in touch.' },
-    ],
-    articles,
-    topics,
-    photography: {
-      url: abs('/photography/'),
-      count: pictureLogs.length,
-      latest: newestPhoto ? newestPhoto.toISOString() : null,
-    },
+    pages,
+    ...(showBlog ? { articles } : {}),
+    ...(showTags ? { topics } : {}),
+    ...(showPhotography
+      ? {
+          photography: {
+            url: abs('/photography/'),
+            count: pictureLogs.length,
+            latest: newestPhoto ? newestPhoto.toISOString() : null,
+          },
+        }
+      : {}),
   };
 
   return new Response(JSON.stringify(body, null, 2) + '\n', {

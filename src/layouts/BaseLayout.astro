@@ -28,7 +28,8 @@ const showBreadcrumbs = props.showBreadcrumbs !== undefined ? props.showBreadcru
 const hasBreadcrumbExtra = Astro.slots.has('breadcrumb-extra');
 const showSubBar = showBreadcrumbs || hasBreadcrumbExtra;
 
-let breadcrumbsList: BreadcrumbItem[] = props.breadcrumbs ? [...props.breadcrumbs] : [];
+let breadcrumbsList: BreadcrumbItem[] =
+  showBreadcrumbs && props.breadcrumbs ? [...props.breadcrumbs] : [];
 
 if (showBreadcrumbs && breadcrumbsList.length === 0) {
   const segments = cleanPath.split("/").filter(Boolean);

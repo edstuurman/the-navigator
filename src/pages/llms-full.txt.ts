@@ -14,6 +14,7 @@ import { getLogAnchorPageMap, getGalleryPhotoHref } from '../utils/logTimeline';
 import { getPaginatedHref } from '../utils/pagination';
 import { siteConfig } from '../site.config';
 import { formatSiteDate } from '../utils/dates';
+import { isFeatureEnabled } from '../utils/features';
 
 /**
  * Build-time generated `/llms-full.txt`: complete concatenated Markdown archive
@@ -24,11 +25,16 @@ export async function GET(context: APIContext) {
   const siteUrl = (context.site ? context.site.href : siteConfig.site.url).replace(/\/+$/, '');
   const abs = (path: string) => `${siteUrl}${path.startsWith('/') ? path : `/${path}`}`;
 
+  const showAbout = isFeatureEnabled('about');
+  const showBlog = isFeatureEnabled('blog');
+  const showLog = isFeatureEnabled('log');
+  const showPhotography = isFeatureEnabled('photography');
+
   const [posts, logNotes, changelogs, logAnchorPages, aboutEntry] = await Promise.all([
-    getCollection('blog'),
-    getCollection('log'),
-    getChangelogEntries(),
-    getLogAnchorPageMap(),
+    showBlog ? getCollection('blog') : Promise.resolve([]),
+    showLog ? getCollection('log') : Promise.resolve([]),
+    showLog ? getChangelogEntries() : Promise.resolve([]),
+    showLog ? getLogAnchorPageMap() : Promise.resolve({} as Record<string, number>),
     getEntry('pages', 'about'),
   ]);
 
@@ -111,52 +117,72 @@ export async function GET(context: APIContext) {
     `# ${siteConfig.site.title} - Full Site Documentation Archive`,
     `> Complete concatenated archive of ${siteConfig.site.domain} for LLM ingestion, agent analysis, and retrieval.`,
     `> Canonical URL: ${siteUrl}`,
-    '',
-    '---',
-    '',
-    `# About ${siteConfig.author.name}`,
-    `- Role: ${siteConfig.author.jobTitle}`,
-    `- Location: ${siteConfig.author.location}`,
-    `- URL: ${abs('/about/')}`,
-    '',
-    '## Summary',
-    aboutEntry?.body?.trim() ?? siteConfig.site.description,
-    '',
-    '## Career History',
-    '',
-    careerBlocks.join('\n\n'),
-    '',
-    '## Peer Recommendations',
-    '',
-    recBlocks.join('\n\n'),
-    '',
-    '---',
-    '',
-    '# Articles Archive',
-    '',
-    '---',
-    '',
-    articleBlocks.join('\n\n---\n\n'),
-    '',
-    '---',
-    '',
-    '# Operational Logs & Status-Updates',
-    '',
-    logBlocks.join('\n\n---\n\n'),
-    '',
-    '---',
-    '',
-    '# Site Changelogs',
-    '',
-    changelogBlocks.join('\n\n---\n\n'),
-    '',
-    '---',
-    '',
-    '# Photography Portfolio & Photo Rolls',
-    `- URL: ${abs('/photography/')}`,
-    `- Total Photographs: ${pictureLogs.length}`,
-    '',
-    photoBlocks.join('\n'),
+    ...(showAbout
+      ? [
+          '',
+          '---',
+          '',
+          `# About ${siteConfig.author.name}`,
+          `- Role: ${siteConfig.author.jobTitle}`,
+          `- Location: ${siteConfig.author.location}`,
+          `- URL: ${abs('/about/')}`,
+          '',
+          '## Summary',
+          aboutEntry?.body?.trim() ?? siteConfig.site.description,
+          '',
+          '## Career History',
+          '',
+          careerBlocks.join('\n\n'),
+          '',
+          '## Peer Recommendations',
+          '',
+          recBlocks.join('\n\n'),
+        ]
+      : []),
+    ...(showBlog && articleBlocks.length > 0
+      ? [
+          '',
+          '---',
+          '',
+          '# Articles Archive',
+          '',
+          '---',
+          '',
+          articleBlocks.join('\n\n---\n\n'),
+        ]
+      : []),
+    ...(showLog && logBlocks.length > 0
+      ? [
+          '',
+          '---',
+          '',
+          '# Operational Logs & Status-Updates',
+          '',
+          logBlocks.join('\n\n---\n\n'),
+        ]
+      : []),
+    ...(showLog && changelogBlocks.length > 0
+      ? [
+          '',
+          '---',
+          '',
+          '# Site Changelogs',
+          '',
+          changelogBlocks.join('\n\n---\n\n'),
+        ]
+      : []),
+    ...(showPhotography && photoBlocks.length > 0
+      ? [
+          '',
+          '---',
+          '',
+          '# Photography Portfolio & Photo Rolls',
+          `- URL: ${abs('/photography/')}`,
+          `- Total Photographs: ${pictureLogs.length}`,
+          '',
+          photoBlocks.join('\n'),
+        ]
+      : []),
     '',
   ];
 

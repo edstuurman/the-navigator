@@ -1,8 +1,21 @@
 ---
 import Logo from './Logo.astro';
 import { themeConfig } from '../theme.config';
+import { isFeatureEnabled, isUrlEnabled } from '../utils/features';
 const currentYear = new Date().getFullYear();
 const { site, author, socials, footer } = themeConfig;
+const showContact = isFeatureEnabled('contact');
+const showHome = isFeatureEnabled('home');
+const showAbout = isFeatureEnabled('about');
+const showNow = isFeatureEnabled('now');
+const showBlog = isFeatureEnabled('blog');
+const showPhotography = isFeatureEnabled('photography');
+const showLog = isFeatureEnabled('log');
+const showTags = isFeatureEnabled('tags');
+const showRss = isFeatureEnabled('rss');
+const showLlms = isFeatureEnabled('llms');
+const enabledPoweredByLinks = footer.poweredByLinks.filter((item) => isUrlEnabled(item.href));
+const showPoweredBy = footer.showPoweredBy && enabledPoweredByLinks.length > 0;
 ---
 
 <footer class="border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 transition-colors">
@@ -21,11 +34,15 @@ const { site, author, socials, footer } = themeConfig;
 
       <nav
         aria-label="Footer directory"
-        class="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-4 xl:col-span-8"
+        class:list={[
+          'grid grid-cols-2 gap-x-8 gap-y-10 xl:col-span-8',
+          showPoweredBy ? 'sm:grid-cols-4' : 'sm:grid-cols-3',
+        ]}
       >
         <div>
           <h2 class="text-sm/6 font-semibold text-gray-900 dark:text-white">Social</h2>
           <ul class="mt-5 space-y-3.5">
+            {showContact && (
             <li>
               <a href="/contact/" class="group inline-flex items-center gap-2 text-sm/6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
                 <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-blue-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -34,6 +51,7 @@ const { site, author, socials, footer } = themeConfig;
                 <span>Contact</span>
               </a>
             </li>
+            )}
             <li>
               <a href={`mailto:${author.email}`} class="group inline-flex items-center gap-2 text-sm/6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
                 <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-rose-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -91,6 +109,7 @@ const { site, author, socials, footer } = themeConfig;
         <div>
           <h2 class="text-sm/6 font-semibold text-gray-900 dark:text-white">{footer.siteColumnTitle}</h2>
           <ul class="mt-5 space-y-3.5">
+            {showHome && (
             <li>
               <a href="/" class="group inline-flex items-center gap-2 text-sm/6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
                 <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-amber-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -100,6 +119,8 @@ const { site, author, socials, footer } = themeConfig;
                 <span>Home</span>
               </a>
             </li>
+            )}
+            {showAbout && (
             <li>
               <a href="/about/" class="group inline-flex items-center gap-2 text-sm/6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
                 <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-indigo-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -109,12 +130,16 @@ const { site, author, socials, footer } = themeConfig;
                 <span>About</span>
               </a>
             </li>
+            )}
+            {showNow && (
             <li>
               <a href="/now/" class="group inline-flex items-center gap-2 text-sm/6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
                 <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-emerald-500 shrink-0" aria-hidden="true"><use href="#i-clock" /></svg>
                 <span>Now</span>
               </a>
             </li>
+            )}
+            {showBlog && (
             <li>
               <a href="/blog/" class="group inline-flex items-center gap-2 text-sm/6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
                 <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-cyan-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -125,6 +150,8 @@ const { site, author, socials, footer } = themeConfig;
                 <span>Blog</span>
               </a>
             </li>
+            )}
+            {showPhotography && (
             <li>
               <a href="/photography/" class="group inline-flex items-center gap-2 text-sm/6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
                 <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-fuchsia-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -134,6 +161,8 @@ const { site, author, socials, footer } = themeConfig;
                 <span>Photography</span>
               </a>
             </li>
+            )}
+            {showLog && (
             <li>
               <a href="/log/" class="group inline-flex items-center gap-2 text-sm/6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
                 <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-amber-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -146,18 +175,22 @@ const { site, author, socials, footer } = themeConfig;
                 <span>Log</span>
               </a>
             </li>
+            )}
           </ul>
         </div>
 
         <div>
           <h2 class="text-sm/6 font-semibold text-gray-900 dark:text-white">Index &amp; Feeds</h2>
           <ul class="mt-5 space-y-3.5">
+            {showTags && (
             <li>
               <a href="/tags/" class="group inline-flex items-center gap-2 text-sm/6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
                 <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-violet-500 shrink-0" aria-hidden="true"><use href="#i-tag" /></svg>
                 <span>Tags</span>
               </a>
             </li>
+            )}
+            {showRss && (
             <li class="group inline-flex items-center gap-2 text-sm/6 text-gray-600 dark:text-gray-400">
               <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-amber-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M4 11a9 9 0 0 1 9 9" />
@@ -170,6 +203,7 @@ const { site, author, socials, footer } = themeConfig;
                 <a href="/atom.xml" class="hover:text-gray-900 dark:hover:text-white transition-colors">Atom</a>
               </div>
             </li>
+            )}
             <li>
               <a href="/sitemap-index.xml" class="group inline-flex items-center gap-2 text-sm/6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
                 <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-teal-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -184,6 +218,7 @@ const { site, author, socials, footer } = themeConfig;
                 <span>Sitemap</span>
               </a>
             </li>
+            {showLlms && (
             <li class="group inline-flex flex-wrap items-center gap-x-2 gap-y-1 text-sm/6 text-gray-600 dark:text-gray-400">
               <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-sky-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M12 8V4H8" />
@@ -202,14 +237,15 @@ const { site, author, socials, footer } = themeConfig;
                 <a href="/llms.json" class="hover:text-gray-900 dark:hover:text-white transition-colors">json</a>
               </div>
             </li>
+            )}
           </ul>
         </div>
 
-        {footer.showPoweredBy && (
+        {showPoweredBy && (
         <div>
           <h2 class="text-sm/6 font-semibold text-gray-900 dark:text-white">Powered by</h2>
           <ul class="mt-5 space-y-3.5">
-            {footer.poweredByLinks.map((item) => (
+            {enabledPoweredByLinks.map((item) => (
               <li>
                 <a
                   href={item.href}

@@ -12,7 +12,7 @@ This post serves as a live visual reference and kitchen-sink test suite for the 
 
 ## 1. Automatic Technical Acronym Tooltips
 
-Any acronym defined in `src/data/techTerms.ts` (such as <abbr>MRAP</abbr>, <abbr>OAC</abbr>, <abbr>SigV4A</abbr>, <abbr>BGP</abbr>, <abbr>NVMe</abbr>, <abbr>ZFS</abbr>, or <abbr>AST</abbr>) is automatically upgraded at build time by `src/plugins/rehype-tech-tooltips.mjs` into an accessible, viewport-clamped glassmorphic popover card with domain category badges and keyboard `Escape` support.
+Any acronym defined in `src/data/techTerms.ts` (such as MRAP, OAC, SigV4A, BGP, NVMe, ZFS, or AST) is automatically upgraded at build time by `src/plugins/rehype-tech-tooltips.mjs` into an accessible, viewport-clamped glassmorphic popover card with domain category badges and keyboard `Escape` support.
 
 By default (`tooltips.autoLink: 'first'` in `src/theme.config.ts`), only the first occurrence of each term per article receives a tooltip so paragraphs stay clean and readable.
 

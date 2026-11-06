@@ -2,9 +2,11 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import AmbientGlow from '../components/AmbientGlow.astro';
 import { siteConfig } from '../site.config';
+import { getEffectiveHomePage, isFeatureEnabled } from '../utils/features';
 
 const pageTitle = `${siteConfig.site.title} - Page Not Found`;
 const description = `Page not found — The requested page could not be located on ${siteConfig.site.domain}.`;
+const showBrowseBlog = isFeatureEnabled('blog') && getEffectiveHomePage() !== 'blog';
 ---
 
 <BaseLayout pageTitle={pageTitle} description={description} image="/og/default.jpg" noindex={true}>
@@ -32,13 +34,15 @@ const description = `Page not found — The requested page could not be located 
         >
           Go back home
         </a>
-        <a
-          href="/blog/"
-          class="inline-flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 ring-1 ring-inset ring-gray-300 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-        >
-          <span>Browse articles</span>
-          <span aria-hidden="true">&rarr;</span>
-        </a>
+        {showBrowseBlog && (
+          <a
+            href="/blog/"
+            class="inline-flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 ring-1 ring-inset ring-gray-300 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          >
+            <span>Browse articles</span>
+            <span aria-hidden="true">&rarr;</span>
+          </a>
+        )}
       </div>
     </div>
   </section>

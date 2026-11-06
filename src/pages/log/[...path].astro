@@ -2,8 +2,13 @@
 import LogIndexView from '../../components/pages/LogIndexView.astro';
 import { getLogDataBundle, computeLogPageCacheKey, type LogFilterKind } from '../../utils/logTimeline';
 import { LOG_PAGE_SIZE } from '../../utils/pagination';
+import { isFeatureEnabled } from '../../utils/features';
 
 export async function getStaticPaths() {
+  if (!isFeatureEnabled('log')) {
+    return [];
+  }
+
   const { timeline, noteEntries, changelogEntries, photoEntries } = await getLogDataBundle();
 
   const paths: {
@@ -26,7 +31,9 @@ export async function getStaticPaths() {
   const subStreams = [
     { slug: 'status', filter: 'note' as const, items: noteEntries },
     { slug: 'changelogs', filter: 'changelog' as const, items: changelogEntries },
-    { slug: 'photos', filter: 'photo' as const, items: photoEntries },
+    ...(isFeatureEnabled('photography')
+      ? [{ slug: 'photos', filter: 'photo' as const, items: photoEntries }]
+      : []),
   ];
 
   for (const stream of subStreams) {

@@ -10,6 +10,7 @@ import {
 import { getChangelogEntries, type ChangelogEntry } from './changelog';
 import { loadPhotoImage } from './photoImages';
 import { LOG_PAGE_SIZE, GALLERY_PAGE_SIZE, getPaginatedHref } from './pagination';
+import { isFeatureEnabled } from './features';
 
 export interface NoteTimelineItem {
   kind: 'note';
@@ -63,18 +64,20 @@ export function getLogDataBundle(): Promise<LogDataBundle> {
 
       const changelogEntries = await getChangelogEntries();
 
-      const photoEntries: PhotoTimelineItem[] = await Promise.all(
-        pictureLogs.map(async (photo) => {
-          const imageMetadata = await loadPhotoImage(photo.imageKey);
-          return {
-            kind: 'photo' as const,
-            id: `photo-${photo.id}`,
-            date: photo.pubDate,
-            photo,
-            imageMetadata,
-          };
-        }),
-      );
+      const photoEntries: PhotoTimelineItem[] = isFeatureEnabled('photography')
+        ? await Promise.all(
+            pictureLogs.map(async (photo) => {
+              const imageMetadata = await loadPhotoImage(photo.imageKey);
+              return {
+                kind: 'photo' as const,
+                id: `photo-${photo.id}`,
+                date: photo.pubDate,
+                photo,
+                imageMetadata,
+              };
+            }),
+          )
+        : [];
 
       const timeline: TimelineItem[] = [
         ...noteEntries,
@@ -121,10 +124,12 @@ export function getLogAnchorPageMap(): Promise<Record<string, number>> {
           id: c.id,
           date: c.date,
         })),
-        ...pictureLogs.map((p) => ({
-          id: `photo-${p.id}`,
-          date: p.pubDate,
-        })),
+        ...(isFeatureEnabled('photography')
+          ? pictureLogs.map((p) => ({
+              id: `photo-${p.id}`,
+              date: p.pubDate,
+            }))
+          : []),
       ].sort((a, b) => b.date.valueOf() - a.date.valueOf());
 
       const map: Record<string, number> = {};
@@ -170,6 +175,9 @@ const LOG_TEMPLATE_DIGEST = (() => {
     'src/components/Footer.astro',
     'src/components/TagList.astro',
     'src/styles/global.css',
+    'src/theme.config.ts',
+    'src/data/techTerms.ts',
+    'src/plugins/rehype-tech-tooltips.mjs',
   ]) {
     try {
       h.update(fs.readFileSync(p));

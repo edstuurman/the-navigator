@@ -4,8 +4,12 @@ import BlogPost from '../../layouts/BlogPost.astro';
 import { getReadingTime } from '../../utils/readingTime';
 import { hasVideoEmbed } from '../../utils/postVideo';
 import { computeBlogCacheKey, type AdjacentPost } from '../../utils/blogCache';
+import { isFeatureEnabled } from '../../utils/features';
 
 export async function getStaticPaths() {
+	if (!isFeatureEnabled('blog')) {
+		return [];
+	}
 	const posts = (await getCollection('blog')).sort(
 		(a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
 	);

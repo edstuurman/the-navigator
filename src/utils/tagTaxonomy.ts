@@ -5,6 +5,7 @@ import { slugify } from './slugify';
 import { getChangelogEntries } from './changelog';
 import { experiences, type ExperienceItem } from '../data/experiences';
 import { pictureLogs, type PictureLog } from './pictureLogs';
+import { isFeatureEnabled } from './features';
 
 export interface TagSummaryEntry {
   slug: string;
@@ -58,10 +59,15 @@ let cachedTaxonomy: TagTaxonomyResult | null = null;
 export async function getTagTaxonomy(): Promise<TagTaxonomyResult> {
   if (cachedTaxonomy) return cachedTaxonomy;
 
+  const showBlog = isFeatureEnabled('blog');
+  const showLog = isFeatureEnabled('log');
+  const showAbout = isFeatureEnabled('about');
+  const showPhotography = isFeatureEnabled('photography');
+
   const [allPosts, allLogs, changelogEntries] = await Promise.all([
-    getCollection('blog'),
-    getCollection('log'),
-    getChangelogEntries(),
+    showBlog ? getCollection('blog') : Promise.resolve([]),
+    showLog ? getCollection('log') : Promise.resolve([]),
+    showLog ? getChangelogEntries() : Promise.resolve([]),
   ]);
 
   const tagMap = new Map<string, Omit<TagSummaryEntry, 'slug'>>();
@@ -139,13 +145,15 @@ export async function getTagTaxonomy(): Promise<TagTaxonomyResult> {
   }
 
   // 3. Career experiences
-  for (const exp of experiences) {
-    for (const skill of exp.skills) {
-      const summary = ensureSummary(skill);
-      summary.count += 1;
-      summary.expCount += 1;
-      summary.hasExperience = true;
-      ensureArchive(skill).experiences.push(exp);
+  if (showAbout) {
+    for (const exp of experiences) {
+      for (const skill of exp.skills) {
+        const summary = ensureSummary(skill);
+        summary.count += 1;
+        summary.expCount += 1;
+        summary.hasExperience = true;
+        ensureArchive(skill).experiences.push(exp);
+      }
     }
   }
 
@@ -153,23 +161,25 @@ export async function getTagTaxonomy(): Promise<TagTaxonomyResult> {
   // Photo tags that also appear in Engineering/Career/Blog/Log merge into `tagMap`;
   // photo-exclusive tags go into `photoTagMap`, while `archiveMap` indexes ALL tags.
   const photoTagMap = new Map<string, PhotoOnlyTagEntry>();
-  for (const photo of pictureLogs) {
-    for (const tag of photo.tags) {
-      const slug = slugify(tag);
-      ensureArchive(tag).photoLogs.push(photo);
+  if (showPhotography) {
+    for (const photo of pictureLogs) {
+      for (const tag of photo.tags) {
+        const slug = slugify(tag);
+        ensureArchive(tag).photoLogs.push(photo);
 
-      const existing = tagMap.get(slug);
-      if (existing) {
-        existing.count += 1;
-        existing.contentCount += 1;
-        existing.photoCount += 1;
-      } else {
-        let pEntry = photoTagMap.get(slug);
-        if (!pEntry) {
-          pEntry = { name: tag, slug, count: 0 };
-          photoTagMap.set(slug, pEntry);
+        const existing = tagMap.get(slug);
+        if (existing) {
+          existing.count += 1;
+          existing.contentCount += 1;
+          existing.photoCount += 1;
+        } else {
+          let pEntry = photoTagMap.get(slug);
+          if (!pEntry) {
+            pEntry = { name: tag, slug, count: 0 };
+            photoTagMap.set(slug, pEntry);
+          }
+          pEntry.count += 1;
         }
-        pEntry.count += 1;
       }
     }
   }
@@ -208,6 +218,7 @@ const TAG_TEMPLATE_DIGEST = (() => {
     'src/components/Footer.astro',
     'src/components/TagList.astro',
     'src/styles/global.css',
+    'src/theme.config.ts',
   ]) {
     try {
       h.update(fs.readFileSync(p));

@@ -10,6 +10,7 @@ const PHOTO_TEMPLATE_DIGEST = (() => {
     'src/components/Footer.astro',
     'src/components/SectionNav.astro',
     'src/scripts/section-nav.ts',
+    'src/theme.config.ts',
   ]) {
     try {
       h.update(fs.readFileSync(p));

@@ -13,8 +13,12 @@ import { getGalleryPhotoHref } from '../../utils/logTimeline';
 import { computePhotoCacheKey, type AdjacentPhoto } from '../../utils/photoCache';
 import { siteConfig } from '../../site.config';
 import { loadPhotoImage } from '../../utils/photoImages';
+import { isFeatureEnabled } from '../../utils/features';
 
 export async function getStaticPaths() {
+  if (!isFeatureEnabled('photography')) {
+    return [];
+  }
   // Sort photos in descending chronological order (newest first)
   const sorted = [...pictureLogs].sort((a, b) => b.pubDate.valueOf() - a.pubDate.valueOf());
 

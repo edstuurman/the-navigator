@@ -24,7 +24,7 @@ In this final part of the setup series, we cover:
 
 ## Option 1: Zero-Config Static Hosting (Vercel, Netlify, Cloudflare Pages)
 
-If you don't need multi-region <abbr>AWS</abbr> <abbr>S3</abbr> replication ([Part 2](/blog/2026-11-03-part-2-provisioning-aws-mrap-cloudfront-terraform-gitlab-ci/)), you can host the compiled `./dist/` folder on any static <abbr>CDN</abbr> with zero infrastructure setup:
+If you don't need multi-region AWS S3 replication ([Part 2](/blog/2026-11-03-part-2-provisioning-aws-mrap-cloudfront-terraform-gitlab-ci/)), you can host the compiled `./dist/` folder on any static CDN with zero infrastructure setup:
 
 ### A. Prebuilt Static Upload (Fastest — Zero Cloud Build Minutes)
 

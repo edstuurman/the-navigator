@@ -5,6 +5,7 @@ import { getPictureLogs } from './pictureLogs';
 import { getLogAnchorPageMap, getGalleryPhotoHref } from './logTimeline';
 import { getPaginatedHref } from './pagination';
 import { siteConfig } from '../site.config';
+import { isFeatureEnabled } from './features';
 
 export interface UnifiedFeedItem {
   title: string;
@@ -59,12 +60,16 @@ export async function getUnifiedFeedItems(siteUrlInput?: string): Promise<Unifie
   const toUrl = (p: string) =>
     p.startsWith('http') ? p : `${siteUrl}${p.startsWith('/') ? p : `/${p}`}`;
 
+  const showBlog = isFeatureEnabled('blog');
+  const showLog = isFeatureEnabled('log');
+  const showPhotography = isFeatureEnabled('photography');
+
   const [blogPosts, logNotes, changelogs, photoLogs, logAnchorPages] = await Promise.all([
-    getCollection('blog'),
-    getCollection('log'),
-    getChangelogEntries(),
-    getPictureLogs(),
-    getLogAnchorPageMap(),
+    showBlog ? getCollection('blog') : Promise.resolve([]),
+    showLog ? getCollection('log') : Promise.resolve([]),
+    showLog ? getChangelogEntries() : Promise.resolve([]),
+    showPhotography ? getPictureLogs() : Promise.resolve([]),
+    showLog ? getLogAnchorPageMap() : Promise.resolve({} as Record<string, number>),
   ]);
 
   const blogItems: UnifiedFeedItem[] = blogPosts.map((post) => {
@@ -121,6 +126,9 @@ export async function getUnifiedFeedItems(siteUrlInput?: string): Promise<Unifie
     const galleryUrl = toUrl(getGalleryPhotoHref(photo.id));
     const logAnchor = `photo-${photo.id}`;
     const logUrl = toUrl(getPaginatedHref('/log', logAnchorPages[logAnchor] ?? 1, `#${logAnchor}`));
+    const linksHtml = showLog
+      ? `<p><a href="${galleryUrl}">View in Photo Gallery &rarr;</a> &bull; <a href="${logUrl}">View in Log Stream &rarr;</a></p>`
+      : `<p><a href="${galleryUrl}">View in Photo Gallery &rarr;</a></p>`;
     return {
       title: `Photo: ${photo.title}`,
       link: galleryUrl,
@@ -129,7 +137,7 @@ export async function getUnifiedFeedItems(siteUrlInput?: string): Promise<Unifie
       updated: photo.pubDate,
       summary: `${photo.location} — ${photo.story}`,
       categories: ['Photo', 'Photography', photo.category, ...(photo.tags || [])],
-      content: `<p><strong>Location:</strong> ${photo.location}<br/><strong>Category:</strong> ${photo.category}<br/><strong>Captured:</strong> ${photo.dateFormatted}</p><p>${photo.story}</p><p><a href="${galleryUrl}">View in Photo Gallery &rarr;</a> &bull; <a href="${logUrl}">View in Log Stream &rarr;</a></p>`,
+      content: `<p><strong>Location:</strong> ${photo.location}<br/><strong>Category:</strong> ${photo.category}<br/><strong>Captured:</strong> ${photo.dateFormatted}</p><p>${photo.story}</p>${linksHtml}`,
       author: SITE_AUTHOR,
     };
   });

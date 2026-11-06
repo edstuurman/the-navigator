@@ -3,9 +3,10 @@ import { getCollection } from 'astro:content';
 import { generateOgImage, computeOgCacheKey, type OgImageProps } from '../../utils/generateOgImage';
 import { getReadingTime } from '../../utils/readingTime';
 import { getTagTaxonomy } from '../../utils/tagTaxonomy';
-import { isHardLinkedTag } from '../../utils/tagHref';
+import { isHardLinkedTag, tagHref } from '../../utils/tagHref';
 import { pictureLogs } from '../../utils/pictureLogs';
 import { siteConfig } from '../../site.config';
+import { isFeatureEnabled, isUrlEnabled, type HomePageKey } from '../../utils/features';
 
 export const prerender = true;
 
@@ -19,42 +20,46 @@ export async function getStaticPaths() {
   const paths: StaticPathEntry[] = [];
 
   // 1. Blog Posts
-  const allPosts = await getCollection('blog');
-  for (const post of allPosts) {
-    const props: OgImageProps = {
-      badge: 'Engineering Article',
-      title: post.data.title,
-      description: post.data.description,
-      pubDate: post.data.pubDate,
-      updatedDate: post.data.updatedDate,
-      readingTime: getReadingTime(post.body),
-      tags: post.data.tags || [],
-      theme: 'cyan',
-    };
-    paths.push({
-      params: { slug: `blog/${post.id}` },
-      props,
-      cacheKey: computeOgCacheKey(props),
-    });
+  if (isFeatureEnabled('blog')) {
+    const allPosts = await getCollection('blog');
+    for (const post of allPosts) {
+      const props: OgImageProps = {
+        badge: 'Engineering Article',
+        title: post.data.title,
+        description: post.data.description,
+        pubDate: post.data.pubDate,
+        updatedDate: post.data.updatedDate,
+        readingTime: getReadingTime(post.body),
+        tags: post.data.tags || [],
+        theme: 'cyan',
+      };
+      paths.push({
+        params: { slug: `blog/${post.id}` },
+        props,
+        cacheKey: computeOgCacheKey(props),
+      });
+    }
   }
 
   // 2. Unique Topic / Tag Archives
-  const { archiveMap } = await getTagTaxonomy();
-  for (const [tagSlug, data] of archiveMap.entries()) {
-    if (isHardLinkedTag(tagSlug)) continue;
-    const tag = data.tagName;
-    const props: OgImageProps = {
-      badge: 'Topic Archive',
-      title: `#${tag}`,
-      description: `Explore engineering write-ups, homelab notes, career experience, and photography topics on #${tag} by ${siteConfig.author.name}.`,
-      tags: [tag],
-      theme: 'violet',
-    };
-    paths.push({
-      params: { slug: `tags/${tagSlug}` },
-      props,
-      cacheKey: computeOgCacheKey(props),
-    });
+  if (isFeatureEnabled('tags')) {
+    const { archiveMap } = await getTagTaxonomy();
+    for (const [tagSlug, data] of archiveMap.entries()) {
+      if (isHardLinkedTag(tagSlug) && isUrlEnabled(tagHref(tagSlug))) continue;
+      const tag = data.tagName;
+      const props: OgImageProps = {
+        badge: 'Topic Archive',
+        title: `#${tag}`,
+        description: `Explore engineering write-ups, homelab notes, career experience, and photography topics on #${tag} by ${siteConfig.author.name}.`,
+        tags: [tag],
+        theme: 'violet',
+      };
+      paths.push({
+        params: { slug: `tags/${tagSlug}` },
+        props,
+        cacheKey: computeOgCacheKey(props),
+      });
+    }
   }
 
   // 4. Core Static Pages (derived from `src/content/pages/*.md` + `siteConfig`)
@@ -167,6 +172,13 @@ export async function getStaticPaths() {
   };
 
   for (const [pageSlug, props] of Object.entries(corePages)) {
+    if (
+      pageSlug !== 'home' &&
+      pageSlug !== 'default' &&
+      !isFeatureEnabled(pageSlug as HomePageKey)
+    ) {
+      continue;
+    }
     paths.push({
       params: { slug: pageSlug },
       props,
@@ -175,22 +187,24 @@ export async function getStaticPaths() {
   }
 
   // 5. Individual Photographs (/og/photography/[id].jpg)
-  for (const photo of pictureLogs) {
-    const props: OgImageProps = {
-      badge: `Photograph #${photo.id}`,
-      title: photo.title,
-      description: photo.story ? `${photo.location} — ${photo.story}` : photo.location,
-      pubDate: photo.pubDate,
-      tags: photo.tags || ['Photography'],
-      ctaText: 'View Photo',
-      photoFilename: photo.filename,
-      theme: 'fuchsia',
-    };
-    paths.push({
-      params: { slug: `photography/${photo.id}` },
-      props,
-      cacheKey: computeOgCacheKey(props),
-    });
+  if (isFeatureEnabled('photography')) {
+    for (const photo of pictureLogs) {
+      const props: OgImageProps = {
+        badge: `Photograph #${photo.id}`,
+        title: photo.title,
+        description: photo.story ? `${photo.location} — ${photo.story}` : photo.location,
+        pubDate: photo.pubDate,
+        tags: photo.tags || ['Photography'],
+        ctaText: 'View Photo',
+        photoFilename: photo.filename,
+        theme: 'fuchsia',
+      };
+      paths.push({
+        params: { slug: `photography/${photo.id}` },
+        props,
+        cacheKey: computeOgCacheKey(props),
+      });
+    }
   }
 
   return paths;

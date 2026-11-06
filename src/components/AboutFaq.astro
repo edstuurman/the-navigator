@@ -1,5 +1,6 @@
 ---
 import { getEntry } from 'astro:content';
+import { isUrlEnabled, isContactFormEnabled, isFeatureEnabled } from '../utils/features';
 
 interface FaqItem {
   question: string;
@@ -26,6 +27,21 @@ interface Props {
 const aboutEntry = Astro.props.faq ? null : await getEntry('pages', 'about');
 const faq = Astro.props.faq ?? aboutEntry?.data.faq;
 const faqGroups: FaqGroup[] = faq?.groups ?? [];
+
+function sanitizeAnswerHtml(rawHtml: string): string {
+  let out = rawHtml.replace(
+    /<a\b[^>]*\bhref="(\/[^"#?]*)(?:[?#][^"]*)?"[^>]*>([\s\S]*?)<\/a>/gi,
+    (match, href, inner) => (isUrlEnabled(href) ? match : inner),
+  );
+  if (!isContactFormEnabled()) {
+    out = out.replace(
+      /<a\b([^>]*)\bhref="#contact"([^>]*)>([\s\S]*?)<\/a>/gi,
+      (_match, before, after, inner) =>
+        isFeatureEnabled('contact') ? `<a${before}href="/contact/"${after}>${inner}</a>` : inner,
+    );
+  }
+  return out;
+}
 ---
 
 <section id="faq" aria-labelledby="faq-heading" class="scroll-mt-16 relative isolate py-20 sm:py-28 border-t border-gray-200/70 dark:border-gray-800">
@@ -67,7 +83,7 @@ const faqGroups: FaqGroup[] = faq?.groups ?? [];
                     </svg>
                   </span>
                 </summary>
-                <div class="px-5 pb-5 sm:px-6 sm:pb-6 text-sm sm:text-base/7 text-gray-600 dark:text-gray-300 border-t border-gray-100 dark:border-gray-700/60 pt-4" set:html={item.answerHtml} />
+                <div class="px-5 pb-5 sm:px-6 sm:pb-6 text-sm sm:text-base/7 text-gray-600 dark:text-gray-300 border-t border-gray-100 dark:border-gray-700/60 pt-4" set:html={sanitizeAnswerHtml(item.answerHtml)} />
               </details>
             ))}
           </div>
