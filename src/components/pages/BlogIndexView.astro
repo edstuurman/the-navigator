@@ -374,6 +374,7 @@ const blogSections = [
           currentPage={currentPage}
           totalItems={olderPosts.length}
           pageSize={OLDER_BLOGS_PAGE_SIZE}
+          featuredCount={Math.min(3, posts.length)}
           basePath="/blog"
           firstPageHash="#older-posts"
           itemLabel="articles"

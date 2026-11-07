@@ -222,7 +222,7 @@ export const themeMechanics: ThemeMechanicsConfig = {
   },
 
   pagination: {
-    olderBlogsCount: 20,
+    olderBlogsCount: 10,
     logCount: 20,
     galleryCount: 50,
     homepageCarouselCount: 7,
