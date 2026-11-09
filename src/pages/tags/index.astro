@@ -1,6 +1,10 @@
 ---
 import TagsIndexView from '../../components/pages/TagsIndexView.astro';
 import { isFeatureEnabled } from '../../utils/features';
+
+if (!isFeatureEnabled('tags')) {
+  return new Response(null, { status: 404, statusText: 'Not Found' });
+}
 ---
 
-{isFeatureEnabled('tags') && <TagsIndexView />}
+<TagsIndexView />

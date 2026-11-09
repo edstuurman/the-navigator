@@ -1,6 +1,10 @@
 ---
 import NowView from '../components/pages/NowView.astro';
 import { isFeatureEnabled } from '../utils/features';
+
+if (!isFeatureEnabled('now')) {
+  return new Response(null, { status: 404, statusText: 'Not Found' });
+}
 ---
 
-{isFeatureEnabled('now') && <NowView />}
+<NowView />

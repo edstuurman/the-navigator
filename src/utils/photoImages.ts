@@ -7,12 +7,16 @@
  * `PictureLog.imageKey`.
  */
 import type { ImageMetadata } from 'astro';
+import { isFeatureEnabled } from './features';
 
 export const PHOTO_DIR_KEY = '/src/images/photography/';
 
-export const photoImageModules = import.meta.glob<{ default: ImageMetadata }>(
+const rawPhotoImageModules = import.meta.glob<{ default: ImageMetadata }>(
   '/src/images/photography/*.{jpg,jpeg,png,webp}',
 );
+
+export const photoImageModules: Record<string, () => Promise<{ default: ImageMetadata }>> =
+  isFeatureEnabled('photography') ? rawPhotoImageModules : {};
 
 /** All photo image keys (`/src/images/photography/<filename>`), unsorted. */
 export const photoImageKeys: string[] = Object.keys(photoImageModules);

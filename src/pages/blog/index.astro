@@ -1,6 +1,10 @@
 ---
 import BlogIndexView from '../../components/pages/BlogIndexView.astro';
 import { isFeatureEnabled } from '../../utils/features';
+
+if (!isFeatureEnabled('blog')) {
+  return new Response(null, { status: 404, statusText: 'Not Found' });
+}
 ---
 
-{isFeatureEnabled('blog') && <BlogIndexView currentPage={1} />}
+<BlogIndexView currentPage={1} />

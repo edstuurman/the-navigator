@@ -1,6 +1,10 @@
 ---
 import AboutView from '../components/pages/AboutView.astro';
 import { isFeatureEnabled } from '../utils/features';
+
+if (!isFeatureEnabled('about')) {
+  return new Response(null, { status: 404, statusText: 'Not Found' });
+}
 ---
 
-{isFeatureEnabled('about') && <AboutView />}
+<AboutView />

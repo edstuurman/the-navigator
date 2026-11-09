@@ -25,6 +25,9 @@ interface Props {
 }
 
 const { currentPage } = Astro.props;
+if (!isFeatureEnabled('photography')) {
+  return new Response(null, { status: 404, statusText: 'Not Found' });
+}
 ---
 
 <PhotographyView currentPage={currentPage} />

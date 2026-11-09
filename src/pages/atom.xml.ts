@@ -2,6 +2,7 @@ import type { APIContext } from 'astro';
 import { SITE_DESCRIPTION, SITE_TITLE, SITE_AUTHOR } from '../utils/consts';
 import { getUnifiedFeedItems } from '../utils/feedItems';
 import { siteConfig } from '../site.config';
+import { isFeatureEnabled } from '../utils/features';
 
 function escapeXml(unsafe: string): string {
   return unsafe.replace(/[<>&'"]/g, (c) => {
@@ -21,6 +22,9 @@ function wrapCdata(content: string): string {
 }
 
 export async function GET(context: APIContext) {
+  if (!isFeatureEnabled('rss')) {
+    return new Response(null, { status: 404, statusText: 'Not Found' });
+  }
   const siteUrl = (context.site ? context.site.href : siteConfig.site.url).replace(/\/+$/, '');
   const authorEmail = escapeXml(siteConfig.author.email);
 

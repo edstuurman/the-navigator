@@ -51,6 +51,9 @@ interface Props {
 }
 
 const { post, nextPost, prevPost } = Astro.props;
+if (!isFeatureEnabled('blog') || !post) {
+	return new Response(null, { status: 404, statusText: 'Not Found' });
+}
 const { Content, headings } = await render(post);
 const readingTime = getReadingTime(post.body);
 const hasMermaid = /```mermaid\b/.test(post.body ?? '');

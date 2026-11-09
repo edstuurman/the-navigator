@@ -27,6 +27,9 @@ interface Props {
 }
 
 const { currentPage } = Astro.props;
+if (!isFeatureEnabled('blog')) {
+  return new Response(null, { status: 404, statusText: 'Not Found' });
+}
 ---
 
 <BlogIndexView currentPage={currentPage} />

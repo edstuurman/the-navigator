@@ -62,6 +62,9 @@ interface Props {
 }
 
 const { filter, currentPage } = Astro.props;
+if (!isFeatureEnabled('log') || (filter === 'photo' && !isFeatureEnabled('photography'))) {
+  return new Response(null, { status: 404, statusText: 'Not Found' });
+}
 ---
 
 <LogIndexView filter={filter} currentPage={currentPage} />

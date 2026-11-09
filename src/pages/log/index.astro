@@ -1,6 +1,10 @@
 ---
 import LogIndexView from '../../components/pages/LogIndexView.astro';
 import { isFeatureEnabled } from '../../utils/features';
+
+if (!isFeatureEnabled('log')) {
+  return new Response(null, { status: 404, statusText: 'Not Found' });
+}
 ---
 
-{isFeatureEnabled('log') && <LogIndexView filter="all" currentPage={1} />}
+<LogIndexView filter="all" currentPage={1} />

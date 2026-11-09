@@ -3,8 +3,12 @@ import type { APIContext } from 'astro';
 import { SITE_DESCRIPTION, SITE_TITLE } from '../utils/consts';
 import { getUnifiedFeedItems } from '../utils/feedItems';
 import { siteConfig } from '../site.config';
+import { isFeatureEnabled } from '../utils/features';
 
 export async function GET(context: APIContext) {
+  if (!isFeatureEnabled('rss')) {
+    return new Response(null, { status: 404, statusText: 'Not Found' });
+  }
   const siteUrl = (context.site ? context.site.href : siteConfig.site.url).replace(/\/+$/, '');
 
   const unifiedItems = await getUnifiedFeedItems(siteUrl);

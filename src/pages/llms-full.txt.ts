@@ -22,6 +22,9 @@ import { isFeatureEnabled } from '../utils/features';
  * status-updates, changelogs, and photography metadata for LLM / RAG ingestion.
  */
 export async function GET(context: APIContext) {
+  if (!isFeatureEnabled('llms')) {
+    return new Response(null, { status: 404, statusText: 'Not Found' });
+  }
   const siteUrl = (context.site ? context.site.href : siteConfig.site.url).replace(/\/+$/, '');
   const abs = (path: string) => `${siteUrl}${path.startsWith('/') ? path : `/${path}`}`;
 

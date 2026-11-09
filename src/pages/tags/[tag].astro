@@ -38,6 +38,9 @@ function resolveTagHref(slug: string): string {
 }
 
 const { posts, logs, photoLogs = [], experiences: expMatches, tagName } = Astro.props;
+if (!isFeatureEnabled('tags') || !tagName) {
+  return new Response(null, { status: 404, statusText: 'Not Found' });
+}
 const totalCount = posts.length + logs.length + expMatches.length + photoLogs.length;
 const logAnchorPages = await getLogAnchorPageMap();
 

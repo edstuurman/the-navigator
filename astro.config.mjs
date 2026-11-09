@@ -132,6 +132,7 @@ function postBuildHtml() {
         const scriptRe = /<script\s+type="module"\s+src="(\/_astro\/[^"]+\.js)"><\/script>/g;
         const commentRe = /(<(script|style|pre|textarea)\b[\s\S]*?<\/\2>)|<!--(?!\[if)[\s\S]*?-->/gi;
         const assetRefRe = /["'(](\/_astro\/[^"'()\s?#]+\.(?:css|js))/g;
+        const anyAstroFileRe = /\/_astro\/([A-Za-z0-9_.-]+)/g;
 
         /** @type {Map<string, string | null>} */
         const thumbStatus = new Map();
@@ -139,17 +140,21 @@ function postBuildHtml() {
         const verifiedAssets = new Map();
         /** @type {Map<string, string>} */
         const missingAssets = new Map();
+        /** @type {Set<string>} */
+        const referencedAstroFiles = new Set();
 
         let publishedThumbs = 0;
         let inlinedCount = 0;
         let savedBytes = 0;
         let checkedPages = 0;
+        let prunedAstroAssets = 0;
 
         /** @param {string} d */
         const walk = async (d) => {
           for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
             const full = path.join(d, entry.name);
             if (entry.isDirectory()) {
+              if (full === astroDir) continue;
               await walk(full);
             } else if (entry.name.endsWith('.html')) {
               const original = fs.readFileSync(full, 'utf-8');
@@ -225,8 +230,11 @@ function postBuildHtml() {
                 fs.writeFileSync(full, html);
               }
 
-              // 4. Collect and verify /_astro/*.{css,js} references
+              // 4. Collect and verify /_astro/ references
               checkedPages++;
+              for (const m of html.matchAll(anyAstroFileRe)) {
+                referencedAstroFiles.add(m[1]);
+              }
               for (const m of html.matchAll(assetRefRe)) {
                 const ref = m[1];
                 let exists = verifiedAssets.get(ref);
@@ -238,17 +246,52 @@ function postBuildHtml() {
                   missingAssets.set(ref, path.relative(distDir, full));
                 }
               }
+            } else if (/\.(?:xml|json|txt|xsl)$/i.test(entry.name)) {
+              const text = fs.readFileSync(full, 'utf-8');
+              for (const m of text.matchAll(anyAstroFileRe)) {
+                referencedAstroFiles.add(m[1]);
+              }
             }
           }
         };
 
         await walk(distDir);
 
+        // 5. Prune unreferenced /_astro/ files (e.g. inlined scripts or disabled-feature assets)
+        if (fs.existsSync(astroDir)) {
+          const queue = [...referencedAstroFiles].filter((f) => /\.(?:css|js)$/i.test(f));
+          const scanned = new Set(queue);
+          while (queue.length > 0) {
+            const current = /** @type {string} */ (queue.pop());
+            const fullPath = path.join(astroDir, current);
+            if (!fs.existsSync(fullPath)) continue;
+            const content = fs.readFileSync(fullPath, 'utf-8');
+            for (const m of content.matchAll(anyAstroFileRe)) {
+              const dep = m[1];
+              referencedAstroFiles.add(dep);
+              if (/\.(?:css|js)$/i.test(dep) && !scanned.has(dep)) {
+                scanned.add(dep);
+                queue.push(dep);
+              }
+            }
+          }
+
+          for (const entry of fs.readdirSync(astroDir, { withFileTypes: true })) {
+            if (entry.isFile() && !referencedAstroFiles.has(entry.name)) {
+              fs.rmSync(path.join(astroDir, entry.name), { force: true });
+              prunedAstroAssets++;
+            }
+          }
+        }
+
         if (publishedThumbs > 0) {
           logger.info(`Published ${publishedThumbs} YouTube thumbnail(s) to ${THUMB_PUBLIC_PREFIX}/`);
         }
         if (inlinedCount > 0) {
           logger.info(`Inlined ${jsCache.size} module script bundle(s) across ${inlinedCount} HTML page(s)`);
+        }
+        if (prunedAstroAssets > 0) {
+          logger.info(`Pruned ${prunedAstroAssets} unreferenced /_astro/ asset(s)`);
         }
         if (savedBytes > 0) {
           logger.info(`Stripped ${(savedBytes / 1024).toFixed(1)} KiB of HTML comments from built pages`);

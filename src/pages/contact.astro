@@ -1,6 +1,10 @@
 ---
 import ContactView from '../components/pages/ContactView.astro';
 import { isFeatureEnabled } from '../utils/features';
+
+if (!isFeatureEnabled('contact')) {
+  return new Response(null, { status: 404, statusText: 'Not Found' });
+}
 ---
 
-{isFeatureEnabled('contact') && <ContactView />}
+<ContactView />
