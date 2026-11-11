@@ -37,13 +37,7 @@
 @property --border-beam-angle {
   syntax: '<angle>';
   initial-value: 0deg;
-  inherits: false;
-}
-
-@keyframes border-beam-spin {
-  to {
-    --border-beam-angle: 360deg;
-  }
+  inherits: true;
 }
 
 /* Fast, radiant shooting star entrance sweep (1.1s) */
@@ -108,10 +102,10 @@
   animation-delay: var(--beam-delay, 0s);
 }
 
-/* Slower continuous circling on mouse hover (3s infinite spin) */
+/* Follow mouse pointer angle on hover instead of continuous spin */
 .border-beam-card:hover::before {
   opacity: 1 !important;
-  animation: border-beam-spin 3s linear infinite !important;
+  animation: none !important;
 }
 
 /* Reduced motion accessibility */
