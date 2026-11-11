@@ -118,7 +118,7 @@ const breakdownText = breakdownParts.join(' • ');
 
             <div class="space-y-4">
               {expMatches.map((exp) => (
-                <article class="relative rounded-2xl p-6 shadow-md ring-1 ring-gray-900/5 dark:ring-white/10 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm transition-colors">
+                <article class="relative rounded-2xl p-6 shadow-md ring-1 ring-gray-900/5 dark:ring-white/10 bg-white/95 dark:bg-gray-800/90 transition-colors">
                   <div class="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 pb-3 border-b border-gray-100 dark:border-gray-700/60">
                     <div>
                       <h3 class="text-lg font-bold text-gray-900 dark:text-white">
@@ -181,7 +181,7 @@ const breakdownText = breakdownParts.join(' • ');
               {posts.map((post) => {
                 const postHasVideo = hasVideoEmbed(post.body);
                 return (
-                <article class="border-beam-card group relative rounded-2xl p-6 sm:p-7 shadow-md hover:shadow-xl ring-1 ring-gray-900/5 dark:ring-white/10 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm transition-all duration-200">
+                <article class="border-beam-card group relative rounded-2xl p-6 sm:p-7 shadow-md hover:shadow-xl ring-1 ring-gray-900/5 dark:ring-white/10 bg-white/95 dark:bg-gray-800/90 transition-all duration-200">
                   <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-2">
                     <PostDateMeta
                       pubDate={post.data.pubDate}
@@ -259,7 +259,7 @@ const breakdownText = breakdownParts.join(' • ');
               {logs.map((log) => {
                 const anchorId = log.id;
                 return (
-                  <article class="border-beam-card group relative rounded-2xl p-6 shadow-md hover:shadow-xl ring-1 ring-gray-900/5 dark:ring-white/10 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm transition-all duration-200">
+                  <article class="border-beam-card group relative rounded-2xl p-6 shadow-md hover:shadow-xl ring-1 ring-gray-900/5 dark:ring-white/10 bg-white/95 dark:bg-gray-800/90 transition-all duration-200">
                     <div class="flex items-center justify-between text-xs text-amber-700 dark:text-amber-400 mb-2 font-mono">
                       <FormattedDate date={log.date} />
                       <span class="text-gray-500 dark:text-gray-400 group-hover:text-amber-600 transition">View in Log &rarr;</span>
@@ -339,7 +339,7 @@ const breakdownText = breakdownParts.join(' • ');
                   <a
                     href={getGalleryPhotoHref(photo.id)}
                     aria-label={`View ${photo.title} in photo gallery`}
-                    class="border-beam-card group/card block rounded-2xl p-6 sm:p-7 shadow-md hover:shadow-xl ring-1 ring-gray-900/5 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm dark:ring-white/10 hover:ring-amber-500/40 transition-all duration-200 cursor-pointer no-underline"
+                    class="border-beam-card group/card block rounded-2xl p-6 sm:p-7 shadow-md hover:shadow-xl ring-1 ring-gray-900/5 bg-white/95 dark:bg-gray-800/90 dark:ring-white/10 hover:ring-amber-500/40 transition-all duration-200 cursor-pointer no-underline"
                   >
                     <div class="grid grid-cols-1 sm:grid-cols-12 gap-6 items-start">
                       <!-- Image Thumbnail Column -->

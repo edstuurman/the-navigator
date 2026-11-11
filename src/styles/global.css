@@ -61,11 +61,15 @@
 .border-beam-card {
   position: relative;
   isolation: isolate;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  transform: translateZ(0);
+  backface-visibility: hidden;
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
 }
 
 .border-beam-card:hover {
-  transform: translateY(-2px);
+  transform: translate3d(0, -2px, 0);
 }
 
 /* Crisp 1.5px circling border beam (strictly border stroke, no center cone) */
@@ -90,6 +94,8 @@
   -webkit-mask-composite: destination-out;
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: exclude;
+  transform: translateZ(0);
+  backface-visibility: hidden;
   opacity: 0;
   transition: opacity 0.3s ease;
   pointer-events: none;
@@ -111,7 +117,7 @@
 /* Reduced motion accessibility */
 @media (prefers-reduced-motion: reduce) {
   .border-beam-card:hover {
-    transform: none;
+    transform: translateZ(0);
   }
   .border-beam-card.border-beam-active::before {
     animation: none !important;
@@ -151,10 +157,10 @@
     @apply inline-flex items-center gap-1 text-[11px] font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800/80 px-2 py-0.5 rounded-md ring-1 ring-inset ring-gray-200 dark:ring-gray-700/80;
   }
   .log-card {
-    @apply rounded-2xl p-6 sm:p-8 shadow-md ring-1 ring-gray-900/5 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm dark:ring-white/10 transition-colors;
+    @apply rounded-2xl p-6 sm:p-8 shadow-md ring-1 ring-gray-900/5 bg-white/95 dark:bg-gray-800/90 dark:ring-white/10 transition-colors;
   }
   .log-photo-card {
-    @apply relative rounded-2xl p-6 sm:p-7 shadow-md hover:shadow-xl ring-1 ring-gray-900/5 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm dark:ring-white/10 hover:ring-amber-500/40 transition-all duration-200;
+    @apply relative rounded-2xl p-6 sm:p-7 shadow-md hover:shadow-xl ring-1 ring-gray-900/5 bg-white/95 dark:bg-gray-800/90 dark:ring-white/10 hover:ring-amber-500/40 transition-all duration-200;
   }
   .log-h2 {
     @apply text-xl font-semibold tracking-tight text-gray-900 dark:text-white flex items-center gap-2 pb-4 border-b border-gray-100 dark:border-gray-700/60;

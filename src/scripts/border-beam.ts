@@ -182,11 +182,13 @@ function initBorderBeamObserver(): void {
         card.classList.add('border-beam-active');
 
         const cleanup = () => {
-          card.classList.remove('border-beam-active');
-          card.style.removeProperty('--beam-delay');
+          requestAnimationFrame(() => {
+            card.classList.remove('border-beam-active');
+            card.style.removeProperty('--beam-delay');
+          });
         };
 
-        // Clean up when entrance animation completes
+        // Clean up on the next paint frame after the entrance animation completes
         card.addEventListener(
           'animationend',
           (e: AnimationEvent) => {
@@ -196,9 +198,6 @@ function initBorderBeamObserver(): void {
           },
           { once: true }
         );
-
-        // Safety fallback timer (delay + 1.1s duration + buffer)
-        setTimeout(cleanup, delayMs + 1500);
       }
     },
     {
