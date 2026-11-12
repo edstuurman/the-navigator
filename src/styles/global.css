@@ -63,13 +63,11 @@
   isolation: isolate;
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
-  transform: translateZ(0);
-  backface-visibility: hidden;
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
 }
 
 .border-beam-card:hover {
-  transform: translate3d(0, -2px, 0);
+  transform: translateY(-2px);
 }
 
 /* Crisp 1.5px circling border beam (strictly border stroke, no center cone) */
@@ -94,8 +92,6 @@
   -webkit-mask-composite: destination-out;
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: exclude;
-  transform: translateZ(0);
-  backface-visibility: hidden;
   opacity: 0;
   transition: opacity 0.3s ease;
   pointer-events: none;
@@ -117,7 +113,7 @@
 /* Reduced motion accessibility */
 @media (prefers-reduced-motion: reduce) {
   .border-beam-card:hover {
-    transform: translateZ(0);
+    transform: none;
   }
   .border-beam-card.border-beam-active::before {
     animation: none !important;

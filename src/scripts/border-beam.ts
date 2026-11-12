@@ -182,11 +182,12 @@ function initBorderBeamObserver(): void {
         card.classList.add('border-beam-active');
 
         const cleanup = () => {
-          requestAnimationFrame(() => {
-            card.classList.remove('border-beam-active');
-            card.style.removeProperty('--beam-delay');
-          });
+          card.classList.remove('border-beam-active');
+          card.style.removeProperty('--beam-delay');
         };
+
+        // When mouse hovers, clean up entrance animation immediately so hover tracking takes over cleanly
+        card.addEventListener('pointerenter', cleanup, { once: true });
 
         // Clean up on the next paint frame after the entrance animation completes
         card.addEventListener(
@@ -198,6 +199,9 @@ function initBorderBeamObserver(): void {
           },
           { once: true }
         );
+
+        // Safety fallback timer: guarantees removal even if hover cancels animationend or frames drop
+        setTimeout(cleanup, delayMs + 1300);
       }
     },
     {
