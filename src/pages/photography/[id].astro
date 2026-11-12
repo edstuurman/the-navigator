@@ -76,19 +76,32 @@ const description = photo.story
 
 const ogImage = `/og/photography/${photo.id}.jpg`;
 
-// Schema.org ImageObject structured data for search engine indexing
+// Schema.org ImageObject structured data for Google Images and search engine indexing
 const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'ImageObject',
   name: photo.title,
   caption: description,
-  contentUrl: `${siteConfig.site.url}/photography/${photo.id}/`,
+  description: description,
+  url: `${siteConfig.site.url}/photography/${photo.id}/`,
+  contentUrl: `${siteConfig.site.url}${fullImageSrc}`,
+  thumbnailUrl: `${siteConfig.site.url}${fullImageSrc}`,
+  representativeOfPage: true,
   datePublished: photo.pubDate.toISOString(),
   author: {
     '@type': 'Person',
     name: siteConfig.author.name,
     url: `${siteConfig.site.url}/`,
   },
+  creator: {
+    '@type': 'Person',
+    name: siteConfig.author.name,
+    url: `${siteConfig.site.url}/`,
+  },
+  creditText: siteConfig.author.name,
+  copyrightNotice: `© ${new Date(photo.pubDate).getFullYear()} ${siteConfig.author.name}. All rights reserved.`,
+  license: `${siteConfig.site.url}/about/`,
+  acquireLicensePage: `${siteConfig.site.url}/contact/`,
   contentLocation: {
     '@type': 'Place',
     name: photo.location,

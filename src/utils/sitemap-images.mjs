@@ -323,7 +323,28 @@ export function getImagesForUrl(item, distDir = path.join(process.cwd(), 'dist')
       }
     };
 
-    // 1. Photography gallery page - bundle all full-resolution photos
+    // 1a. Individual photograph permalink page (/photography/[id]/)
+    if (/^\/photography\/\d+\/?$/.test(urlObj.pathname)) {
+      const pageTitle = extractPageTitle(html);
+      // Find the main photo image in the stage
+      const stageMatch = html.match(/<a\b[^>]*\bcursor-zoom-in\b[^>]*>[\s\S]*?<img\b[^>]*src="([^">]+)"[^>]*>/i);
+      const photoHref = stageMatch ? stageMatch[1] : null;
+
+      const storyMatch = html.match(/<meta name="description" content="([^"]+)"/i);
+      const caption = storyMatch ? storyMatch[1] : `${pageTitle} — captured in ${AUTHOR_LOCATION}.`;
+
+      if (photoHref) {
+        addImage({
+          url: photoHref,
+          title: pageTitle,
+          caption: caption,
+          geoLocation: AUTHOR_LOCATION,
+        });
+      }
+      return images;
+    }
+
+    // 1b. Photography gallery page - bundle all full-resolution photos
     if (
       urlObj.pathname === '/photography' ||
       urlObj.pathname === '/photography/' ||
@@ -336,13 +357,15 @@ export function getImagesForUrl(item, distDir = path.join(process.cwd(), 'dist')
         const hrefMatch = m[0].match(/\bhref="([^"]+)"/);
         if (!hrefMatch) return;
         const href = hrefMatch[1];
+        const titleMatch = m[0].match(/\bdata-photo-title="([^"]+)"/);
+        const altMatch = m[0].match(/\bdata-photo-alt="([^"]+)"/);
         const idMatch = m[0].match(/\bdata-photo-id="(\d+)"/);
-        const numMatch = href.match(/\/(\d+)\.[^/]+$/);
-        const photoNum = idMatch ? idMatch[1] : numMatch ? numMatch[1] : idx + 1;
+        const photoTitle = titleMatch ? titleMatch[1] : `Photograph #${idMatch ? idMatch[1] : idx + 1}`;
+        const photoCaption = altMatch ? altMatch[1] : `${photoTitle} — ${AUTHOR_NAME}`;
         addImage({
           url: href,
-          title: `Photograph #${photoNum} — ${AUTHOR_NAME}`,
-          caption: `Moments, landscapes, and architecture captured through the lens in ${AUTHOR_LOCATION}.`,
+          title: `${photoTitle} — ${AUTHOR_NAME}`,
+          caption: photoCaption,
           geoLocation: AUTHOR_LOCATION,
         });
       });
