@@ -1,7 +1,7 @@
 ---
 import { type CollectionEntry, getCollection, render } from 'astro:content';
 import BlogPost from '../../layouts/BlogPost.astro';
-import { getReadingTime } from '../../utils/readingTime';
+import { getReadingTime, getReadingTimeMinutes, getWordCount } from '../../utils/readingTime';
 import { hasVideoEmbed } from '../../utils/postVideo';
 import { computeBlogCacheKey, type AdjacentPost } from '../../utils/blogCache';
 import { isFeatureEnabled } from '../../utils/features';
@@ -56,6 +56,8 @@ if (!isFeatureEnabled('blog') || !post) {
 }
 const { Content, headings } = await render(post);
 const readingTime = getReadingTime(post.body);
+const readingTimeMinutes = getReadingTimeMinutes(post.body);
+const wordCount = getWordCount(post.body);
 const hasMermaid = /```mermaid\b/.test(post.body ?? '');
 const hasYouTube = hasVideoEmbed(post.body);
 ---
@@ -64,6 +66,8 @@ const hasYouTube = hasVideoEmbed(post.body);
 	{...post.data}
 	id={post.id}
 	readingTime={readingTime}
+	readingTimeMinutes={readingTimeMinutes}
+	wordCount={wordCount}
 	nextPost={nextPost}
 	prevPost={prevPost}
 	headings={headings}

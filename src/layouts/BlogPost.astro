@@ -28,6 +28,8 @@ type AdjacentPost = {
 type Props = CollectionEntry<'blog'>['data'] & {
   author?: string;
   readingTime?: string;
+  readingTimeMinutes?: number;
+  wordCount?: number;
   id?: string;
   nextPost?: AdjacentPost;
   prevPost?: AdjacentPost;
@@ -46,6 +48,8 @@ const {
   tags,
   author = themeConfig.author.name,
   readingTime,
+  readingTimeMinutes,
+  wordCount,
   id,
   nextPost,
   prevPost,
@@ -63,11 +67,14 @@ const blogSections = resolveBlogSections(
   headings
 );
 
+const isHomelabPost = tags?.some((t) => ['homelab', 'proxmox'].includes(t.toLowerCase()));
+
 const ogImage = heroImage || (id ? `/og/blog/${id}.jpg` : '/og/blog.jpg');
 ---
 
 <BaseLayout
-  pageTitle={`${themeConfig.site.title} - ${title}`}
+  pageTitle={`${title} — ${themeConfig.site.title}`}
+  articleTitle={title}
   description={description}
   image={ogImage}
   imageAlt={heroImageAlt || title}
@@ -77,6 +84,8 @@ const ogImage = heroImage || (id ? `/og/blog/${id}.jpg` : '/og/blog.jpg');
   author={author}
   tags={tags}
   section={tags?.[0]}
+  wordCount={wordCount}
+  readingTimeMinutes={readingTimeMinutes}
   breadcrumbs={[{ name: "Blog", href: "/blog/" }, { name: title }]}
 >
   <!-- Section navigation pills in breadcrumbs bar + Floating capsule / Back to top on scroll -->
@@ -124,6 +133,23 @@ const ogImage = heroImage || (id ? `/og/blog/${id}.jpg` : '/og/blog.jpg');
 
     <div class="mx-auto mt-10 max-w-3xl px-6 text-base/7 text-gray-700 dark:text-gray-300 lg:px-8">
       <div class="prose dark:prose-invert max-w-2xl text-gray-600 dark:text-gray-300">
+        {isHomelabPost && (
+          <aside class="not-prose mb-8 rounded-2xl border border-sky-500/20 bg-sky-500/5 dark:bg-sky-950/20 p-4 sm:p-5 text-sm text-sky-900 dark:text-sky-200">
+            <div class="flex items-center gap-2">
+              <span class="relative flex size-2">
+                <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                <span class="relative inline-flex size-2 rounded-full bg-emerald-500"></span>
+              </span>
+              <span class="font-semibold text-xs uppercase tracking-wider text-sky-800 dark:text-sky-300">Living Homelab Proof-of-Concept</span>
+            </div>
+            <p class="mt-2 text-xs/5 sm:text-sm/6 text-gray-600 dark:text-gray-300">
+              This architecture is part of the physical infrastructure running live on 
+              <a href="https://www.home-lab.net" target="_blank" rel="noopener noreferrer" class="font-medium text-sky-700 dark:text-sky-400 underline decoration-sky-400/50 hover:text-sky-600 dark:hover:text-sky-300 transition-colors">
+                home-lab.net &rarr;
+              </a>
+            </p>
+          </aside>
+        )}
         <slot />
         <div class="not-prose mt-8 border-t border-gray-200 dark:border-gray-800 pt-6">
           <TagList tags={tags} showLabel={true} />

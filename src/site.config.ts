@@ -33,6 +33,12 @@ export interface SiteIdentityConfig {
   author: {
     /** Primary display name (also used as the default blog post author in `src/content.config.ts`) */
     name: string;
+    /** Given name for Schema.org Person structured data */
+    givenName?: string;
+    /** Family/surname for Schema.org Person structured data */
+    familyName?: string;
+    /** Additional name / nickname for Schema.org Person structured data */
+    additionalName?: string;
     /** Full or alternate name for Schema.org Person structured data */
     alternateName?: string;
     /** Image in `src/images/` used for the author avatar chip and blog author bio box */
@@ -51,6 +57,8 @@ export interface SiteIdentityConfig {
     email: string;
     /** Core topics listed in Schema.org `knowsAbout` */
     knowsAbout: string[];
+    /** Wikidata entity URL used in Schema.org Person sameAs */
+    wikidata?: string;
   };
 
   socials: {
@@ -61,6 +69,7 @@ export interface SiteIdentityConfig {
     twitter?: string;
     bluesky?: string;
     mastodon?: string;
+    gravatar?: string;
   };
 }
 

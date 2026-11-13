@@ -7,8 +7,15 @@ export const GET: APIRoute = () => {
     'User-agent: *',
     'Allow: /',
     '',
+    '# Sitemaps',
     `Sitemap: ${siteUrl}/sitemap-index.xml`,
     `Sitemap: ${siteUrl}/sitemap.xml`,
+    '',
+    '# LLM & AI Context Manifests (llms.txt standard: https://llmstxt.org)',
+    '# Structured knowledge graph and site documentation for search engines and AI assistants',
+    `Allow: /llms.txt`,
+    `Allow: /llms-full.txt`,
+    `Allow: /llms.json`,
     '',
   ].join('\n');
 

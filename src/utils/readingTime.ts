@@ -35,3 +35,17 @@ export function getReadingTime(content: string | undefined): string {
   return `${minutes} min read`;
 }
 
+/**
+ * Extracts approximate prose word count from markdown content.
+ */
+export function getWordCount(content: string | undefined): number {
+  if (!content) return 0;
+  let text = content.replace(/^---[\s\S]*?---/, '');
+  text = text.replace(/```[\s\S]*?```/g, ' ');
+  text = text.replace(/<[^>]*>/g, ' ');
+  text = text.replace(/!\[.*?\]\(.*?\)/g, ' ');
+  text = text.replace(/\[(.*?)\]\(.*?\)/g, '$1');
+  text = text.replace(/[#*_~`>\-]+/g, ' ');
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+

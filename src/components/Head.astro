@@ -15,6 +15,7 @@ export interface BreadcrumbProp {
 
 export interface Props {
   pageTitle: string;
+  articleTitle?: string;
   description?: string;
   image?: ImageMetadata | string;
   imageAlt?: string;
@@ -24,12 +25,15 @@ export interface Props {
   author?: string;
   tags?: string[];
   section?: string;
+  wordCount?: number;
+  readingTimeMinutes?: number;
   noindex?: boolean;
   breadcrumbs?: BreadcrumbProp[];
 }
 
 const {
   pageTitle,
+  articleTitle,
   description = themeConfig.site.description,
   image = "/og/home.jpg",
   imageAlt,
@@ -39,6 +43,8 @@ const {
   author = themeConfig.author.name,
   tags = [],
   section,
+  wordCount,
+  readingTimeMinutes,
   noindex = false,
   breadcrumbs,
 } = Astro.props;
@@ -75,14 +81,21 @@ const modifiedISO = modifiedTime
   : undefined;
 
 // Person Schema (used across site to establish author/creator identity)
-const sameAsLinks = Object.values(themeConfig.socials).filter((v): v is string => Boolean(v));
+const sameAsLinks = [
+  ...Object.values(themeConfig.socials).filter((v): v is string => Boolean(v)),
+  ...(themeConfig.author.wikidata ? [themeConfig.author.wikidata] : []),
+];
 const personId = `${themeConfig.site.url}/#person`;
 const personRef = { "@id": personId };
+const websiteId = `${themeConfig.site.url}/#website`;
 
 const personSchema = {
   "@type": "Person",
   "@id": personId,
   "name": themeConfig.author.name,
+  ...(themeConfig.author.givenName ? { "givenName": themeConfig.author.givenName } : {}),
+  ...(themeConfig.author.additionalName ? { "additionalName": themeConfig.author.additionalName } : {}),
+  ...(themeConfig.author.familyName ? { "familyName": themeConfig.author.familyName } : {}),
   ...(themeConfig.author.alternateName ? { "alternateName": themeConfig.author.alternateName } : {}),
   "url": themeConfig.site.url,
   "image": new URL(FallbackImage.src, Astro.site).href,
@@ -92,19 +105,38 @@ const personSchema = {
   "knowsAbout": themeConfig.author.knowsAbout
 };
 
+// Authoritative WebSite Entity Schema
+const websiteSchema = {
+  "@type": "WebSite",
+  "@id": websiteId,
+  "name": "Stuurman",
+  "alternateName": Array.from(new Set([themeConfig.site.domain, themeConfig.site.title, "stuurman.com"])),
+  "url": `${themeConfig.site.url}/`,
+  "description": themeConfig.site.description,
+  "publisher": personRef
+};
+
 // Determine page-specific Google Rich Result Schema
 let pageSchema: Record<string, unknown>;
 
 if (type === 'article') {
   pageSchema = {
     "@type": "BlogPosting",
+    "@id": `${canonicalURL.href}#article`,
+    "isPartOf": { "@id": websiteId },
     "mainEntityOfPage": {
       "@type": "WebPage",
       "@id": canonicalURL.href
     },
-    "headline": pageTitle,
+    "headline": articleTitle || pageTitle,
     "description": description,
-    "image": imageURL.href,
+    "inLanguage": "en-US",
+    "image": {
+      "@type": "ImageObject",
+      "url": imageURL.href,
+      "width": imageWidth || 1200,
+      "height": imageHeight || 630
+    },
     "datePublished": publishedISO,
     "dateModified": modifiedISO || publishedISO,
     "author": author === themeConfig.author.name
@@ -115,12 +147,16 @@ if (type === 'article') {
           "url": themeConfig.site.url
         },
     "publisher": personRef,
+    ...(wordCount ? { "wordCount": wordCount } : {}),
+    ...(readingTimeMinutes ? { "timeRequired": `PT${readingTimeMinutes}M` } : {}),
     ...(tags.length > 0 ? { "keywords": tags.join(", ") } : {}),
     ...(section ? { "articleSection": section } : {})
   };
 } else if (type === 'profile') {
   pageSchema = {
     "@type": "ProfilePage",
+    "@id": `${canonicalURL.href}#profile`,
+    "isPartOf": { "@id": websiteId },
     "name": pageTitle,
     "url": canonicalURL.href,
     "description": description,
@@ -129,6 +165,8 @@ if (type === 'article') {
 } else if (type === 'blog') {
   pageSchema = {
     "@type": "Blog",
+    "@id": `${canonicalURL.href}#blog`,
+    "isPartOf": { "@id": websiteId },
     "name": pageTitle,
     "url": canonicalURL.href,
     "description": description,
@@ -138,20 +176,15 @@ if (type === 'article') {
 } else if (type === 'gallery') {
   pageSchema = {
     "@type": "ImageGallery",
+    "@id": `${canonicalURL.href}#gallery`,
+    "isPartOf": { "@id": websiteId },
     "name": pageTitle,
     "url": canonicalURL.href,
     "description": description,
     "author": personRef
   };
 } else {
-  pageSchema = {
-    "@type": "WebSite",
-    "name": themeConfig.site.title,
-    "alternateName": themeConfig.site.domain,
-    "url": `${themeConfig.site.url}/`,
-    "description": description,
-    "publisher": personRef
-  };
+  pageSchema = websiteSchema;
 }
 
 // Compute BreadcrumbList Schema for Google Rich Results
@@ -191,7 +224,7 @@ const structuredDataGraph = {
   "@context": "https://schema.org",
   "@graph": [
     personSchema,
-    pageSchema,
+    ...(pageSchema === websiteSchema ? [websiteSchema] : [websiteSchema, pageSchema]),
     ...(breadcrumbSchema ? [breadcrumbSchema] : []),
   ],
 };
@@ -224,6 +257,9 @@ const structuredDataGraph = {
   </>
 )}
 <link rel="canonical" href={canonicalURL} />
+{sameAsLinks.map((link) => (
+  <link rel="me" href={link} />
+))}
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="generator" content={Astro.generator} />
 
