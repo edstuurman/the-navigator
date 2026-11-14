@@ -43,8 +43,7 @@ const galleryItems = await Promise.all(
     const title = photoLog?.title ?? `Photograph ${startIdx + index + 1}`;
     const dateFormatted = photoLog?.dateFormatted ?? '2024';
     const location = photoLog?.location ?? 'Japan';
-    const defaultAttribution = `\u00A9 ${siteConfig.author.name} @ ${siteConfig.site.domain}`;
-    const attribution = photoLog?.attribution || defaultAttribution;
+    const attribution = photoLog?.attribution;
     const photoId = photoLog?.id ?? startIdx + index + 1;
     const timestamp = photoLog ? new Date(photoLog.pubDate).valueOf() : 0;
     const aspectRatio = Number((imgMeta.width / imgMeta.height).toFixed(4));
@@ -424,8 +423,6 @@ const breadcrumbs =
           <span id="lightbox-title" class="text-xs sm:text-sm font-semibold tracking-wide text-white"></span>
           <span class="text-xs text-gray-500 select-none" aria-hidden="true">&bull;</span>
           <span id="lightbox-date" class="text-xs text-gray-400"></span>
-          <span class="text-xs text-gray-500 select-none" aria-hidden="true">&bull;</span>
-          <span id="lightbox-copy" class="text-xs text-gray-500 font-mono text-[11px]">{galleryItems[0]?.attribution ?? `\u00A9 ${siteConfig.author.name} @ ${siteConfig.site.domain}`}</span>
         </div>
         <div class="flex items-center sm:border-l sm:border-white/10 sm:pl-3.5">
           <a
@@ -475,7 +472,6 @@ const breadcrumbs =
       const counterEl = document.getElementById('lightbox-counter');
       const titleEl = document.getElementById('lightbox-title');
       const dateEl = document.getElementById('lightbox-date');
-      const copyEl = document.getElementById('lightbox-copy');
       const permalinkEl = document.getElementById('lightbox-permalink') as HTMLAnchorElement | null;
       const thumbsBarEl = document.getElementById('lightbox-thumbs-bar');
       const thumbsListEl = document.getElementById('lightbox-thumbs-list');
@@ -578,7 +574,6 @@ const breadcrumbs =
         if (counterEl) counterEl.textContent = `${normalized + 1} / ${cards.length}`;
         if (titleEl) titleEl.textContent = title;
         if (dateEl) dateEl.textContent = dateLabel;
-        if (copyEl && attribution) copyEl.textContent = attribution;
         if (photoId > 0) {
           const detailUrl = `/photography/${photoId}/`;
           const detailLabel = title ? `View full details and field notes for ${title}` : 'View full details and field notes for this photograph';
