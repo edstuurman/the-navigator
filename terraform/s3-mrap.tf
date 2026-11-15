@@ -173,20 +173,6 @@ resource "aws_s3_bucket_replication_configuration" "replication" {
       destination {
         bucket        = aws_s3_bucket.s3_buckets[rule.key].arn
         storage_class = "STANDARD"
-
-        replication_time {
-          status = "Enabled"
-          time {
-            minutes = 15
-          }
-        }
-
-        metrics {
-          status = "Enabled"
-          event_threshold {
-            minutes = 15
-          }
-        }
       }
 
       delete_marker_replication {
