@@ -76,6 +76,56 @@ export interface PoweredByLinkConfig {
   highlight?: boolean;
 }
 
+export interface HeroMetricItem {
+  /** Primary metric value rendered in tabular numerals (e.g. '12+', '17', '0 KB', '100%') */
+  value: string;
+  /** Short descriptive label rendered beneath the metric value */
+  label: string;
+  /** Visual accent color for the metric value (default: 'default') */
+  accent?: 'default' | 'amber' | 'emerald';
+}
+
+export interface HeroActionConfig {
+  /** Button or inline link text */
+  label: string;
+  /** Target route or anchor (hidden automatically if the target feature route is disabled in `features`) */
+  href: string;
+  /** Visual weight: 'primary' (amber pill), 'secondary' (ringed pill), or 'ghost' (inline link) */
+  variant?: 'primary' | 'secondary' | 'ghost';
+}
+
+export interface HeroTelemetryConfig {
+  /** Render the `#edge-telemetry` pill and load CloudFront POP detection in 'metrics' mode */
+  enabled: boolean;
+  /** Static fallback text shown before POP detection or on non-CloudFront hosts */
+  fallbackText: string;
+  /** Optional suffix appended after detected POP location (e.g. 'Multi-Region Edge Mesh') */
+  meshLabel?: string;
+}
+
+export interface HeroConfig {
+  /**
+   * Homepage hero layout mode:
+   * - 'metrics': High-impact systems hero with eyebrow, headline, lead summary, metric bar, CTA pills, and optional edge telemetry pill.
+   * - 'classic': Original editorial 2-column narrative card driven by `src/content/pages/home.md`.
+   */
+  style: 'metrics' | 'metrics';
+  /** Optional eyebrow override for 'metrics' mode (falls back to `home.md` `intro.eyebrow`) */
+  eyebrow?: string;
+  /** Optional headline override for 'metrics' mode (falls back to `home.md` `intro.heading`) */
+  heading?: string;
+  /** Optional bold lead-in phrase prepended to the 'metrics' lead paragraph */
+  leadHighlight?: string;
+  /** Optional lead paragraph override for 'metrics' mode (falls back to `home.md` `intro.leftColumn`) */
+  lead?: string;
+  /** Quick-facts metric bar items rendered in 'metrics' mode (recommended: 4 items) */
+  metrics: HeroMetricItem[];
+  /** Action CTAs rendered in 'metrics' mode (auto-filtered via `isUrlEnabled`) */
+  actions?: HeroActionConfig[];
+  /** Optional CloudFront edge POP telemetry pill configuration */
+  telemetry?: HeroTelemetryConfig;
+}
+
 export interface ThemeMechanicsConfig {
   logo: {
     /** Text wordmark rendered inside the SVG logo (`src/components/Logo.astro`) */
@@ -124,6 +174,12 @@ export interface ThemeMechanicsConfig {
    * completely disables its routes, carousels, sub-streams, tag sections, and feed entries.
    */
   features: FeaturesConfig;
+
+  /**
+   * Homepage hero layout and metrics bar configuration (`src/components/views/HomeView.astro`).
+   * Set `style: 'classic'` to restore the 2-column narrative hero from `src/content/pages/home.md`.
+   */
+  hero: HeroConfig;
 
   pagination: {
     /** Number of older blog articles per page on `/blog/` */
@@ -219,6 +275,30 @@ export const themeMechanics: ThemeMechanicsConfig = {
     contactForm: true,
     rss: true,
     llms: true,
+  },
+
+  hero: {
+    style: 'classic',
+    eyebrow: 'Alex Mercer • Cloud & Platform Architecture',
+    heading: 'Alex Mercer — Systems built to hold up under real production pressure.',
+    leadHighlight: 'The Navigator',
+    lead: 'is an open-source Astro 7 static architecture and engineering showcase by Alex Mercer, a Principal Cloud & Platform Architect. Built around declarative Terraform automation, optional 17-region AWS S3 MRAP + CloudFront SigV4a delivery, and zero-bloat web performance.',
+    metrics: [
+      { value: '12+', label: 'Years Cloud & Platform Architecture', accent: 'amber' },
+      { value: '17', label: 'AWS Storage Mesh Regions (Optional)', accent: 'default' },
+      { value: '0 KB', label: 'Client Framework Overhead', accent: 'default' },
+      { value: '100%', label: 'Terraform-Declared & Automated', accent: 'emerald' },
+    ],
+    actions: [
+      { label: 'Read Background', href: '/about/', variant: 'primary' },
+      { label: 'Setup & Tech Articles', href: '/blog/', variant: 'secondary' },
+      { label: 'Photo Roll', href: '/photography/', variant: 'ghost' },
+    ],
+    telemetry: {
+      enabled: true,
+      fallbackText: 'Static Edge Build • CloudFront POP Ready',
+      meshLabel: 'Multi-Region Edge Mesh',
+    },
   },
 
   pagination: {

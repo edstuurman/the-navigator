@@ -1,6 +1,8 @@
 ---
 pageTitle: "Alex Mercer — Principal Cloud & Platform Architect"
 description: "Alex Mercer — Principal Cloud & Platform Architect. Multi-region AWS infrastructure, Terraform automation, Astro static architecture, and photography."
+# Powers the 2-column classic hero (`hero.style: 'classic'` in `src/theme.config.ts`)
+# and serves as fallback copy when `hero.style: 'metrics'` omits optional fields.
 intro:
   eyebrow: "The Navigator Starter Theme"
   heading: "Alex Mercer"

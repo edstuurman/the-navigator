@@ -4,6 +4,13 @@ All notable changes to this starter theme and infrastructure blueprint are docum
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2026-11-19] — The Navigator v1.5.0 Release
+
+### Added & Changed
+- **Configurable Dual-Mode Hero**: Added `hero.style` (`'metrics' | 'classic'`) in `theme.config.ts` so [`/`](/) can toggle seamlessly between the systems-focused metrics layout and the classic editorial avatar hero.
+- **High-Impact Systems Hero**: Introduced a 4-column quick-facts metric bar with tabular figures and semantic `<dl>` markup, full-width responsive headline and narrative flow, and customizable CTA action buttons.
+- **Dynamic CloudFront Edge Telemetry**: Added progressive enhancement via `edge-telemetry.ts` to detect the nearest CloudFront POP and IATA edge airport code in a live status indicator pill with automatic graceful fallback.
+
 ## [2026-11-19] — The Navigator v1.4.0 Release
 
 ### Added & Polish
