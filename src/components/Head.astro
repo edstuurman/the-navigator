@@ -101,7 +101,7 @@ const personSchema = {
   "image": new URL(FallbackImage.src, Astro.site).href,
   "jobTitle": themeConfig.author.jobTitle,
   "description": themeConfig.author.bio,
-  "sameAs": sameAsLinks,
+  "sameAs": Array.from(new Set(sameAsLinks)),
   "knowsAbout": themeConfig.author.knowsAbout
 };
 
@@ -109,8 +109,8 @@ const personSchema = {
 const websiteSchema = {
   "@type": "WebSite",
   "@id": websiteId,
-  "name": "Stuurman",
-  "alternateName": Array.from(new Set([themeConfig.site.domain, themeConfig.site.title, "stuurman.com"])),
+  "name": themeConfig.site.title,
+  "alternateName": Array.from(new Set([themeConfig.site.domain, themeConfig.site.title])),
   "url": `${themeConfig.site.url}/`,
   "description": themeConfig.site.description,
   "publisher": personRef

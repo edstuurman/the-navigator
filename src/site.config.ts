@@ -65,6 +65,7 @@ export interface SiteIdentityConfig {
     github?: string;
     gitlab?: string;
     linkedin?: string;
+    devto?: string;
     instagram?: string;
     twitter?: string;
     bluesky?: string;
@@ -121,6 +122,9 @@ export const siteConfig: SiteIdentityConfig = {
     github: 'https://github.com',
     gitlab: 'https://gitlab.com',
     linkedin: 'https://www.linkedin.com',
+    bluesky: 'https://bsky.app',
+    mastodon: 'https://mastodon.social',
+    devto: 'https://dev.to',
     instagram: 'https://www.instagram.com',
   },
 };

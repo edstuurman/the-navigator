@@ -16,12 +16,25 @@ const showRss = isFeatureEnabled('rss');
 const showLlms = isFeatureEnabled('llms');
 const enabledPoweredByLinks = footer.poweredByLinks.filter((item) => isUrlEnabled(item.href));
 const showPoweredBy = footer.showPoweredBy && enabledPoweredByLinks.length > 0;
+
+const socialCount = [
+  showContact,
+  Boolean(author.email),
+  Boolean(socials.linkedin),
+  Boolean(socials.github),
+  Boolean(socials.gitlab),
+  Boolean(socials.bluesky),
+  Boolean(socials.mastodon),
+  Boolean(socials.devto),
+  Boolean(socials.instagram),
+].filter(Boolean).length;
+const isTwoColSocial = socialCount >= 6;
 ---
 
 <footer class="border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 transition-colors">
   <div class="mx-auto max-w-7xl px-6 py-16 sm:py-24 lg:px-8 lg:py-28">
     <div class="grid grid-cols-1 gap-14 xl:grid-cols-12 xl:gap-8">
-      <div class="xl:col-span-4">
+      <div class:list={[isTwoColSocial ? 'xl:col-span-3' : 'xl:col-span-4']}>
         <a
           href="/"
           title={`${site.title} - Home`}
@@ -35,75 +48,208 @@ const showPoweredBy = footer.showPoweredBy && enabledPoweredByLinks.length > 0;
       <nav
         aria-label="Footer directory"
         class:list={[
-          'grid grid-cols-2 gap-x-8 gap-y-10 xl:col-span-8',
-          showPoweredBy ? 'sm:grid-cols-4' : 'sm:grid-cols-3',
+          'grid grid-cols-2 gap-x-8 gap-y-10',
+          isTwoColSocial ? 'xl:col-span-9' : 'xl:col-span-8',
+          isTwoColSocial
+            ? (showPoweredBy ? 'sm:grid-cols-3 lg:grid-cols-5' : 'sm:grid-cols-2 lg:grid-cols-4')
+            : (showPoweredBy ? 'sm:grid-cols-4' : 'sm:grid-cols-3'),
         ]}
       >
-        <div>
+        <div class:list={[isTwoColSocial && 'col-span-2 sm:col-span-2']}>
           <h2 class="text-sm/6 font-semibold text-gray-900 dark:text-white">Social</h2>
-          <ul class="mt-5 space-y-3.5">
-            {showContact && (
-            <li>
-              <a href="/contact/" class="group inline-flex items-center gap-2 text-sm/6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
-                <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-blue-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                </svg>
-                <span>Contact</span>
-              </a>
-            </li>
-            )}
-            <li>
-              <a href={`mailto:${author.email}`} class="group inline-flex items-center gap-2 text-sm/6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
-                <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-rose-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <rect width="20" height="16" x="2" y="4" rx="2" />
-                  <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-                </svg>
-                <span>{author.email}</span>
-              </a>
-            </li>
-            {socials.linkedin && (
-            <li>
-              <a href={socials.linkedin} class="group inline-flex items-center gap-2 text-sm/6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
-                <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-[#0a66c2] shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                  <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 8.76a1.69 1.69 0 0 0 1.69-1.69 1.7 1.7 0 0 0-1.69-1.7 1.7 1.7 0 0 0-1.7 1.7 1.69 1.69 0 0 0 1.7 1.69m1.4 9.74v-8.37H5.06v8.37h2.8Z"/>
-                </svg>
-                <span>LinkedIn</span>
-              </a>
-            </li>
-            )}
-            {socials.github && (
-            <li>
-              <a href={socials.github} class="group inline-flex items-center gap-2 text-sm/6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
-                <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-gray-900 dark:group-hover:text-white shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                  <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0 0 22 12.017C22 6.484 17.522 2 12 2Z" />
-                </svg>
-                <span>GitHub</span>
-              </a>
-            </li>
-            )}
-            {socials.gitlab && (
-            <li>
-              <a href={socials.gitlab} class="group inline-flex items-center gap-2 text-sm/6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
-                <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-[#fc6d26] shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                  <path d="M23.955 13.587l-1.342-4.135-2.664-8.189c-.135-.423-.73-.423-.867 0L16.418 9.45H7.582L4.919 1.263C4.783.84 4.185.84 4.05 1.26L1.386 9.449.044 13.587c-.121.375.014.789.331 1.023L12 23.054l11.625-8.443c.318-.235.453-.647.33-1.024Z"/>
-                </svg>
-                <span>GitLab</span>
-              </a>
-            </li>
-            )}
-            {socials.instagram && (
-            <li>
-              <a href={socials.instagram} class="group inline-flex items-center gap-2 text-sm/6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
-                <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-[#E4405F] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
-                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-                  <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
-                </svg>
-                <span>Instagram</span>
-              </a>
-            </li>
-            )}
-          </ul>
+          {isTwoColSocial ? (
+            <div class="mt-5 grid grid-cols-2 gap-x-4 sm:gap-x-6 gap-y-3.5">
+              <ul class="space-y-3.5">
+                {showContact && (
+                <li>
+                  <a href="/contact/" class="group inline-flex items-center gap-2 text-sm/6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                    <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-blue-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
+                    <span>Contact</span>
+                  </a>
+                </li>
+                )}
+                <li>
+                  <a href={`mailto:${author.email}`} class="group inline-flex items-center gap-2 text-sm/6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                    <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-rose-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <rect width="20" height="16" x="2" y="4" rx="2" />
+                      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                    </svg>
+                    <span>{author.email}</span>
+                  </a>
+                </li>
+                {socials.linkedin && (
+                <li>
+                  <a href={socials.linkedin} class="group inline-flex items-center gap-2 text-sm/6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                    <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-[#0a66c2] shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 8.76a1.69 1.69 0 0 0 1.69-1.69 1.7 1.7 0 0 0-1.69-1.7 1.7 1.7 0 0 0-1.7 1.7 1.69 1.69 0 0 0 1.7 1.69m1.4 9.74v-8.37H5.06v8.37h2.8Z"/>
+                    </svg>
+                    <span>LinkedIn</span>
+                  </a>
+                </li>
+                )}
+                {socials.github && (
+                <li>
+                  <a href={socials.github} class="group inline-flex items-center gap-2 text-sm/6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                    <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-gray-900 dark:group-hover:text-white shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0 0 22 12.017C22 6.484 17.522 2 12 2Z" />
+                    </svg>
+                    <span>GitHub</span>
+                  </a>
+                </li>
+                )}
+                {socials.gitlab && (
+                <li>
+                  <a href={socials.gitlab} class="group inline-flex items-center gap-2 text-sm/6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                    <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-[#fc6d26] shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M23.955 13.587l-1.342-4.135-2.664-8.189c-.135-.423-.73-.423-.867 0L16.418 9.45H7.582L4.919 1.263C4.783.84 4.185.84 4.05 1.26L1.386 9.449.044 13.587c-.121.375.014.789.331 1.023L12 23.054l11.625-8.443c.318-.235.453-.647.33-1.024Z"/>
+                    </svg>
+                    <span>GitLab</span>
+                  </a>
+                </li>
+                )}
+              </ul>
+              <ul class="space-y-3.5">
+                {socials.bluesky && (
+                <li>
+                  <a href={socials.bluesky} class="group inline-flex items-center gap-2 text-sm/6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                    <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-[#0285FF] shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M12 10.8c-1.087-2.114-4.046-6.053-6.798-7.995C2.566.944 1.561 1.266.902 1.565.139 1.908 0 3.08 0 3.768c0 .69.378 5.65.624 6.479.815 2.736 3.713 3.66 6.383 3.364.136-.02.275-.039.415-.056-.138.022-.276.04-.415.056-3.912.58-7.387 2.005-2.83 7.078 5.013 5.19 6.87-1.113 7.823-4.308.953 3.195 2.05 9.271 7.733 4.308 4.267-4.308 1.172-6.498-2.74-7.078a8.741 8.741 0 0 1-.415-.056c.14.017.279.036.415.056 2.67.297 5.568-.628 6.383-3.364.246-.828.624-5.79.624-6.478 0-.69-.139-1.861-.902-2.206-.659-.298-1.664-.62-4.3 1.24C16.046 4.748 13.087 8.687 12 10.8Z" />
+                    </svg>
+                    <span>Bluesky</span>
+                  </a>
+                </li>
+                )}
+                {socials.mastodon && (
+                <li>
+                  <a href={socials.mastodon} class="group inline-flex items-center gap-2 text-sm/6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                    <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-[#6364FF] shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M23.268 5.313c-.35-2.578-2.617-4.61-5.304-5.004C17.51.242 15.792 0 11.813 0h-.03c-3.98 0-4.835.242-5.288.309C3.882.692 1.496 2.509.915 5.313c-.55 2.65-.672 5.534-.672 8.528 0 2.22.04 4.444.156 6.666.236 4.496 3.655 4.966 6.744 5.176 1.838.125 3.67.067 5.503-.029.076-.004.152-.01.228-.018 1.47-.156 3.208-.543 3.208-.543l-.066-1.503s-1.127.359-2.395.424c-1.57.08-3.144.025-4.715-.078-2.18-.142-2.486-1.077-2.582-1.748l-.014-.14s1.611.393 3.708.486c1.075.048 2.146.037 3.22-.034 2.457-.16 4.88-.694 5.184-3.344.417-3.642.484-6.726.484-8.875 0-.756-.008-1.512-.025-2.268zm-4.743 7.822h-2.197V7.81c0-1.47-.648-2.22-1.942-2.22-1.43 0-2.146.924-2.146 2.755v3.99H9.86v-3.99c0-1.83-.716-2.755-2.146-2.755-1.294 0-1.942.75-1.942 2.22v5.325H3.576V7.632c0-1.47.375-2.637 1.125-3.5 1.05-1.123 2.504-1.258 3.5-1.258 1.433 0 2.535.547 3.307 1.64h.016c.772-1.093 1.874-1.64 3.307-1.64.996 0 2.45.135 3.5 1.258.75.863 1.125 2.03 1.125 3.5v5.503h.07z" />
+                    </svg>
+                    <span>Mastodon</span>
+                  </a>
+                </li>
+                )}
+                {socials.devto && (
+                <li>
+                  <a href={socials.devto} class="group inline-flex items-center gap-2 text-sm/6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                    <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-gray-900 dark:group-hover:text-white shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M7.42 10.05c-.18-.16-.46-.23-.84-.23H5v4.36h1.58c.38 0 .66-.08.84-.23.18-.16.27-.42.27-.8v-2.3c0-.38-.09-.64-.27-.8zM0 0v24h24V0H0zm9.43 14.07c-.45.85-1.29 1.28-2.52 1.28H2.76V8.65h4.15c1.23 0 2.07.43 2.52 1.28.45.85.67 1.95.67 3.07s-.22 2.22-.67 3.07zm4.33 1.28h-3.98V8.65h3.98v1.64H12.3v1.07h2.23v1.54H12.3v1.51h1.46v1.94zm7.48-6.7h-2.15l-1.6 4.96-1.6-4.96h-2.15l2.67 7.7h2.16l2.67-7.7z" />
+                    </svg>
+                    <span>DEV.to</span>
+                  </a>
+                </li>
+                )}
+                {socials.instagram && (
+                <li>
+                  <a href={socials.instagram} class="group inline-flex items-center gap-2 text-sm/6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                    <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-[#E4405F] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+                      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                      <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+                    </svg>
+                    <span>Instagram</span>
+                  </a>
+                </li>
+                )}
+              </ul>
+            </div>
+          ) : (
+            <ul class="mt-5 space-y-3.5">
+              {showContact && (
+              <li>
+                <a href="/contact/" class="group inline-flex items-center gap-2 text-sm/6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                  <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-blue-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  </svg>
+                  <span>Contact</span>
+                </a>
+              </li>
+              )}
+              <li>
+                <a href={`mailto:${author.email}`} class="group inline-flex items-center gap-2 text-sm/6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                  <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-rose-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect width="20" height="16" x="2" y="4" rx="2" />
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                  </svg>
+                  <span>{author.email}</span>
+                </a>
+              </li>
+              {socials.linkedin && (
+              <li>
+                <a href={socials.linkedin} class="group inline-flex items-center gap-2 text-sm/6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                  <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-[#0a66c2] shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 8.76a1.69 1.69 0 0 0 1.69-1.69 1.7 1.7 0 0 0-1.69-1.7 1.7 1.7 0 0 0-1.7 1.7 1.69 1.69 0 0 0 1.7 1.69m1.4 9.74v-8.37H5.06v8.37h2.8Z"/>
+                  </svg>
+                  <span>LinkedIn</span>
+                </a>
+              </li>
+              )}
+              {socials.github && (
+              <li>
+                <a href={socials.github} class="group inline-flex items-center gap-2 text-sm/6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                  <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-gray-900 dark:group-hover:text-white shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0 0 22 12.017C22 6.484 17.522 2 12 2Z" />
+                  </svg>
+                  <span>GitHub</span>
+                </a>
+              </li>
+              )}
+              {socials.gitlab && (
+              <li>
+                <a href={socials.gitlab} class="group inline-flex items-center gap-2 text-sm/6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                  <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-[#fc6d26] shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M23.955 13.587l-1.342-4.135-2.664-8.189c-.135-.423-.73-.423-.867 0L16.418 9.45H7.582L4.919 1.263C4.783.84 4.185.84 4.05 1.26L1.386 9.449.044 13.587c-.121.375.014.789.331 1.023L12 23.054l11.625-8.443c.318-.235.453-.647.33-1.024Z"/>
+                  </svg>
+                  <span>GitLab</span>
+                </a>
+              </li>
+              )}
+              {socials.bluesky && (
+              <li>
+                <a href={socials.bluesky} class="group inline-flex items-center gap-2 text-sm/6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                  <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-[#0285FF] shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M12 10.8c-1.087-2.114-4.046-6.053-6.798-7.995C2.566.944 1.561 1.266.902 1.565.139 1.908 0 3.08 0 3.768c0 .69.378 5.65.624 6.479.815 2.736 3.713 3.66 6.383 3.364.136-.02.275-.039.415-.056-.138.022-.276.04-.415.056-3.912.58-7.387 2.005-2.83 7.078 5.013 5.19 6.87-1.113 7.823-4.308.953 3.195 2.05 9.271 7.733 4.308 4.267-4.308 1.172-6.498-2.74-7.078a8.741 8.741 0 0 1-.415-.056c.14.017.279.036.415.056 2.67.297 5.568-.628 6.383-3.364.246-.828.624-5.79.624-6.478 0-.69-.139-1.861-.902-2.206-.659-.298-1.664-.62-4.3 1.24C16.046 4.748 13.087 8.687 12 10.8Z" />
+                  </svg>
+                  <span>Bluesky</span>
+                </a>
+              </li>
+              )}
+              {socials.mastodon && (
+              <li>
+                <a href={socials.mastodon} class="group inline-flex items-center gap-2 text-sm/6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                  <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-[#6364FF] shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M23.268 5.313c-.35-2.578-2.617-4.61-5.304-5.004C17.51.242 15.792 0 11.813 0h-.03c-3.98 0-4.835.242-5.288.309C3.882.692 1.496 2.509.915 5.313c-.55 2.65-.672 5.534-.672 8.528 0 2.22.04 4.444.156 6.666.236 4.496 3.655 4.966 6.744 5.176 1.838.125 3.67.067 5.503-.029.076-.004.152-.01.228-.018 1.47-.156 3.208-.543 3.208-.543l-.066-1.503s-1.127.359-2.395.424c-1.57.08-3.144.025-4.715-.078-2.18-.142-2.486-1.077-2.582-1.748l-.014-.14s1.611.393 3.708.486c1.075.048 2.146.037 3.22-.034 2.457-.16 4.88-.694 5.184-3.344.417-3.642.484-6.726.484-8.875 0-.756-.008-1.512-.025-2.268zm-4.743 7.822h-2.197V7.81c0-1.47-.648-2.22-1.942-2.22-1.43 0-2.146.924-2.146 2.755v3.99H9.86v-3.99c0-1.83-.716-2.755-2.146-2.755-1.294 0-1.942.75-1.942 2.22v5.325H3.576V7.632c0-1.47.375-2.637 1.125-3.5 1.05-1.123 2.504-1.258 3.5-1.258 1.433 0 2.535.547 3.307 1.64h.016c.772-1.093 1.874-1.64 3.307-1.64.996 0 2.45.135 3.5 1.258.75.863 1.125 2.03 1.125 3.5v5.503h.07z" />
+                  </svg>
+                  <span>Mastodon</span>
+                </a>
+              </li>
+              )}
+              {socials.devto && (
+              <li>
+                <a href={socials.devto} class="group inline-flex items-center gap-2 text-sm/6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                  <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-gray-900 dark:group-hover:text-white shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M7.42 10.05c-.18-.16-.46-.23-.84-.23H5v4.36h1.58c.38 0 .66-.08.84-.23.18-.16.27-.42.27-.8v-2.3c0-.38-.09-.64-.27-.8zM0 0v24h24V0H0zm9.43 14.07c-.45.85-1.29 1.28-2.52 1.28H2.76V8.65h4.15c1.23 0 2.07.43 2.52 1.28.45.85.67 1.95.67 3.07s-.22 2.22-.67 3.07zm4.33 1.28h-3.98V8.65h3.98v1.64H12.3v1.07h2.23v1.54H12.3v1.51h1.46v1.94zm7.48-6.7h-2.15l-1.6 4.96-1.6-4.96h-2.15l2.67 7.7h2.16l2.67-7.7z" />
+                  </svg>
+                  <span>DEV.to</span>
+                </a>
+              </li>
+              )}
+              {socials.instagram && (
+              <li>
+                <a href={socials.instagram} class="group inline-flex items-center gap-2 text-sm/6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                  <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-[#E4405F] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+                    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+                  </svg>
+                  <span>Instagram</span>
+                </a>
+              </li>
+              )}
+            </ul>
+          )}
         </div>
 
         <div>

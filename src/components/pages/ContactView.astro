@@ -136,6 +136,48 @@ const description = contactData.description;
                     <span aria-hidden="true" class="text-gray-400 dark:text-gray-500 transition-colors group-hover:text-gray-600 dark:group-hover:text-gray-300">&nearr;</span>
                   </a>
                 )}
+                {siteConfig.socials.bluesky && (
+                  <a
+                    href={siteConfig.socials.bluesky}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="group inline-flex items-center gap-2 rounded-lg bg-gray-50 dark:bg-gray-700/50 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 ring-1 ring-inset ring-gray-200 dark:ring-gray-700 hover:text-gray-900 dark:hover:text-white hover:ring-gray-300 dark:hover:ring-gray-600 transition"
+                  >
+                    <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-[#0285FF] shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M12 10.8c-1.087-2.114-4.046-6.053-6.798-7.995C2.566.944 1.561 1.266.902 1.565.139 1.908 0 3.08 0 3.768c0 .69.378 5.65.624 6.479.815 2.736 3.713 3.66 6.383 3.364.136-.02.275-.039.415-.056-.138.022-.276.04-.415.056-3.912.58-7.387 2.005-2.83 7.078 5.013 5.19 6.87-1.113 7.823-4.308.953 3.195 2.05 9.271 7.733 4.308 4.267-4.308 1.172-6.498-2.74-7.078a8.741 8.741 0 0 1-.415-.056c.14.017.279.036.415.056 2.67.297 5.568-.628 6.383-3.364.246-.828.624-5.79.624-6.478 0-.69-.139-1.861-.902-2.206-.659-.298-1.664-.62-4.3 1.24C16.046 4.748 13.087 8.687 12 10.8Z" />
+                    </svg>
+                    <span>Bluesky</span>
+                    <span aria-hidden="true" class="text-gray-400 dark:text-gray-500 transition-colors group-hover:text-gray-600 dark:group-hover:text-gray-300">&nearr;</span>
+                  </a>
+                )}
+                {siteConfig.socials.mastodon && (
+                  <a
+                    href={siteConfig.socials.mastodon}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="group inline-flex items-center gap-2 rounded-lg bg-gray-50 dark:bg-gray-700/50 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 ring-1 ring-inset ring-gray-200 dark:ring-gray-700 hover:text-gray-900 dark:hover:text-white hover:ring-gray-300 dark:hover:ring-gray-600 transition"
+                  >
+                    <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-[#6364FF] shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M23.268 5.313c-.35-2.578-2.617-4.61-5.304-5.004C17.51.242 15.792 0 11.813 0h-.03c-3.98 0-4.835.242-5.288.309C3.882.692 1.496 2.509.915 5.313c-.55 2.65-.672 5.534-.672 8.528 0 2.22.04 4.444.156 6.666.236 4.496 3.655 4.966 6.744 5.176 1.838.125 3.67.067 5.503-.029.076-.004.152-.01.228-.018 1.47-.156 3.208-.543 3.208-.543l-.066-1.503s-1.127.359-2.395.424c-1.57.08-3.144.025-4.715-.078-2.18-.142-2.486-1.077-2.582-1.748l-.014-.14s1.611.393 3.708.486c1.075.048 2.146.037 3.22-.034 2.457-.16 4.88-.694 5.184-3.344.417-3.642.484-6.726.484-8.875 0-.756-.008-1.512-.025-2.268zm-4.743 7.822h-2.197V7.81c0-1.47-.648-2.22-1.942-2.22-1.43 0-2.146.924-2.146 2.755v3.99H9.86v-3.99c0-1.83-.716-2.755-2.146-2.755-1.294 0-1.942.75-1.942 2.22v5.325H3.576V7.632c0-1.47.375-2.637 1.125-3.5 1.05-1.123 2.504-1.258 3.5-1.258 1.433 0 2.535.547 3.307 1.64h.016c.772-1.093 1.874-1.64 3.307-1.64.996 0 2.45.135 3.5 1.258.75.863 1.125 2.03 1.125 3.5v5.503h.07z" />
+                    </svg>
+                    <span>Mastodon</span>
+                    <span aria-hidden="true" class="text-gray-400 dark:text-gray-500 transition-colors group-hover:text-gray-600 dark:group-hover:text-gray-300">&nearr;</span>
+                  </a>
+                )}
+                {siteConfig.socials.devto && (
+                  <a
+                    href={siteConfig.socials.devto}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="group inline-flex items-center gap-2 rounded-lg bg-gray-50 dark:bg-gray-700/50 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 ring-1 ring-inset ring-gray-200 dark:ring-gray-700 hover:text-gray-900 dark:hover:text-white hover:ring-gray-300 dark:hover:ring-gray-600 transition"
+                  >
+                    <svg class="size-4 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-gray-900 dark:group-hover:text-white shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M7.42 10.05c-.18-.16-.46-.23-.84-.23H5v4.36h1.58c.38 0 .66-.08.84-.23.18-.16.27-.42.27-.8v-2.3c0-.38-.09-.64-.27-.8zM0 0v24h24V0H0zm9.43 14.07c-.45.85-1.29 1.28-2.52 1.28H2.76V8.65h4.15c1.23 0 2.07.43 2.52 1.28.45.85.67 1.95.67 3.07s-.22 2.22-.67 3.07zm4.33 1.28h-3.98V8.65h3.98v1.64H12.3v1.07h2.23v1.54H12.3v1.51h1.46v1.94zm7.48-6.7h-2.15l-1.6 4.96-1.6-4.96h-2.15l2.67 7.7h2.16l2.67-7.7z" />
+                    </svg>
+                    <span>DEV.to</span>
+                    <span aria-hidden="true" class="text-gray-400 dark:text-gray-500 transition-colors group-hover:text-gray-600 dark:group-hover:text-gray-300">&nearr;</span>
+                  </a>
+                )}
                 {siteConfig.socials.instagram && (
                   <a
                     href={siteConfig.socials.instagram}

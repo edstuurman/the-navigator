@@ -70,6 +70,9 @@ export async function GET(context: APIContext) {
     siteConfig.socials.github ? `- **GitHub:** ${siteConfig.socials.github}` : '',
     siteConfig.socials.gitlab ? `- **GitLab:** ${siteConfig.socials.gitlab}` : '',
     siteConfig.socials.linkedin ? `- **LinkedIn:** ${siteConfig.socials.linkedin}` : '',
+    siteConfig.socials.bluesky ? `- **Bluesky:** ${siteConfig.socials.bluesky}` : '',
+    siteConfig.socials.mastodon ? `- **Mastodon:** ${siteConfig.socials.mastodon}` : '',
+    siteConfig.socials.devto ? `- **DEV.to:** ${siteConfig.socials.devto}` : '',
     siteConfig.socials.instagram ? `- **Instagram:** ${siteConfig.socials.instagram}` : '',
   ].filter(Boolean);
 

@@ -4,6 +4,13 @@ All notable changes to this starter theme and infrastructure blueprint are docum
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2026-11-19] — The Navigator v1.4.0 Release
+
+### Added & Polish
+- **Adaptive Two-Column Social Directory**: Redesigned the footer directory to dynamically detect social profile count. When configured with 6 or more social links, the directory automatically scales into an adaptive two-column grid (`lg:grid-cols-5`) for optimal visual balance, while maintaining a clean single-column list when 5 or fewer profiles are configured.
+- **Expanded Social Channels (Bluesky, Mastodon & DEV.to)**: Added native support and branded SVG icons for Bluesky, Mastodon, and DEV.to across the footer directory, [`/contact/`](/contact/) direct channel pills, machine-readable `llms.txt`, and automated Schema.org `Person.sameAs` / `<link rel="me">` identity verification.
+- **Strict Canonical WebSite Metadata**: Cleaned up the global WebSite entity schema to dynamically mirror site configuration defaults without hardcoded brand assumptions.
+
 ## [2026-11-06] — The Navigator v1.3.0 Release
 
 ### Added & Changed
