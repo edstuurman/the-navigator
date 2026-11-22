@@ -4,6 +4,8 @@ description: "How The Navigator's dual GitLab CI and GitHub Actions pipelines ru
 pubDate: '2026-11-03T10:00:00'
 updatedDate: '2026-11-06'
 tags: ["CI/CD", "Architecture", "AWS", "CloudFront", "AstroJS"]
+series: "The Navigator Starter Guide"
+seriesOrder: 3
 sectionNav: "h1 to h2"
 ---
 

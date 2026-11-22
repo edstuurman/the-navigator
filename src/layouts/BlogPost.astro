@@ -8,10 +8,14 @@ import SectionNav from '../components/SectionNav.astro';
 import TechTooltipsScript from '../components/scripts/TechTooltipsScript.astro';
 import MermaidZoomScript from '../components/scripts/MermaidZoomScript.astro';
 import YouTubeEmbedScript from '../components/scripts/YouTubeEmbedScript.astro';
+import ArticleEngagementScript from '../components/scripts/ArticleEngagementScript.astro';
+import SeriesBox from '../components/SeriesBox.astro';
+import RelatedPosts from '../components/RelatedPosts.astro';
 import { Image } from 'astro:assets';
 import { authorAvatarImage as authorImage } from '../utils/authorImages';
 import type { CollectionEntry } from 'astro:content';
 import type { MarkdownHeading } from 'astro';
+import type { RelatedPostItem, PostSeriesContext } from '../utils/relatedPosts';
 import { resolveBlogSections } from '../utils/sectionNav';
 import { themeConfig } from '../theme.config';
 import { isContactFormEnabled, isFeatureEnabled } from '../utils/features';
@@ -36,6 +40,8 @@ type Props = CollectionEntry<'blog'>['data'] & {
   headings?: MarkdownHeading[];
   hasMermaid?: boolean;
   hasYouTube?: boolean;
+  relatedPosts?: RelatedPostItem[];
+  seriesContext?: PostSeriesContext | null;
 };
 
 const {
@@ -60,6 +66,8 @@ const {
   sections: manualSections,
   hasMermaid = true,
   hasYouTube = true,
+  relatedPosts = [],
+  seriesContext = null,
 } = Astro.props;
 
 const blogSections = resolveBlogSections(
@@ -124,6 +132,12 @@ const ogImage = heroImage || (id ? `/og/blog/${id}.jpg` : '/og/blog.jpg');
             </span>
           </>
         )}
+        {seriesContext && (
+          <>
+            <span class="text-gray-300 dark:text-gray-700" aria-hidden="true">&bull;</span>
+            <a href="#series-nav" class="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 dark:bg-amber-500/15 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:text-amber-300 ring-1 ring-inset ring-amber-500/25 hover:bg-amber-500/20 transition-colors">Part {seriesContext.currentPart} of {seriesContext.totalParts} &bull; {seriesContext.name}</a>
+          </>
+        )}
       </div>
       <h1 class="mt-2 text-4xl font-semibold tracking-tight text-pretty text-gray-900 dark:text-white sm:text-5xl">
         {title}
@@ -155,6 +169,9 @@ const ogImage = heroImage || (id ? `/og/blog/${id}.jpg` : '/og/blog.jpg');
           <TagList tags={tags} showLabel={true} />
         </div>
       </div>
+
+      {seriesContext && <SeriesBox series={seriesContext} />}
+      {relatedPosts.length > 0 && <RelatedPosts posts={relatedPosts} />}
 
       <!-- Adjacent Articles Navigation -->
       {(nextPost || prevPost) && (
@@ -326,6 +343,7 @@ const ogImage = heroImage || (id ? `/og/blog/${id}.jpg` : '/og/blog.jpg');
         let copiedTimeout: ReturnType<typeof setTimeout> | null = null;
         const setCopied = () => {
           if (copiedTimeout) clearTimeout(copiedTimeout);
+          window.__trackUmami?.('code-copy', { language: lang || 'text', path: window.location.pathname });
           copyBtn.innerHTML = checkSvg;
           copyBtn.classList.add('is-copied');
           copyBtn.classList.remove('is-error');
@@ -369,6 +387,7 @@ const ogImage = heroImage || (id ? `/og/blog/${id}.jpg` : '/og/blog.jpg');
     setupCodeCopyButtons();
   </script>
   <TechTooltipsScript />
+  <ArticleEngagementScript />
   {hasMermaid && <MermaidZoomScript />}
   {hasYouTube && <YouTubeEmbedScript />}
 </BaseLayout>

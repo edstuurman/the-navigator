@@ -312,6 +312,17 @@ const structuredDataGraph = {
     }}
   >
     (() => {
+      const queue = (window.__umamiQueue = window.__umamiQueue || []);
+      window.__trackUmami = (name, data) => {
+        try {
+          if (window.umami && typeof window.umami.track === 'function') {
+            window.umami.track(name, data);
+          } else if (queue.length < 20) {
+            queue.push([name, data]);
+          }
+        } catch (_) {}
+      };
+
       let loaded = false;
       const loadUmami = () => {
         if (loaded) return;
@@ -320,6 +331,19 @@ const structuredDataGraph = {
         s.async = true;
         s.src = umamiSrc;
         s.setAttribute('data-website-id', umamiWebsiteId);
+        s.addEventListener('load', () => {
+          try {
+            if (!window.umami || typeof window.umami.track !== 'function') return;
+            while (queue.length > 0) {
+              const entry = queue.shift();
+              if (!entry) continue;
+              const [name, data] = entry;
+              try {
+                window.umami.track(name, data);
+              } catch (_) {}
+            }
+          } catch (_) {}
+        }, { once: true });
         document.head.appendChild(s);
       };
       const events = ['scroll', 'pointerdown', 'keydown', 'touchstart'];

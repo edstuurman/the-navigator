@@ -1,0 +1,65 @@
+---
+import type { RelatedPostItem } from '../utils/relatedPosts';
+
+interface Props {
+	posts: RelatedPostItem[];
+}
+
+const { posts } = Astro.props;
+---
+
+{posts.length > 0 && (
+	<section
+		aria-labelledby="related-reading-heading"
+		class="not-prose mt-12 pt-8 border-t border-gray-200 dark:border-gray-800"
+	>
+		<h2
+			id="related-reading-heading"
+			class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-4"
+		>
+			Related Reading
+		</h2>
+		<div
+			class={`grid grid-cols-1 gap-4 sm:gap-5 ${
+				posts.length === 2
+					? 'sm:grid-cols-2'
+					: posts.length >= 3
+						? 'sm:grid-cols-2 lg:grid-cols-3'
+						: ''
+			}`}
+		>
+			{posts.map((post) => (
+				<a
+					href={`/blog/${post.id}/`}
+					data-track-event="related-post-click"
+					data-track-label={post.id}
+					class="border-beam-card group flex flex-col justify-between rounded-2xl p-5 shadow-md ring-1 ring-gray-900/5 bg-white/95 dark:bg-gray-800/90 dark:ring-white/10 transition-all duration-200 hover:shadow-lg no-underline text-inherit"
+				>
+					<div>
+						<div class="text-xs font-medium text-gray-500 dark:text-gray-400">
+							{post.readingTime}
+						</div>
+						<h3 class="mt-2 text-base font-semibold text-gray-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors line-clamp-2">
+							{post.title}
+						</h3>
+						<p class="mt-2 text-xs/5 text-gray-600 dark:text-gray-400 line-clamp-2">
+							{post.description}
+						</p>
+					</div>
+					<div class="mt-4 flex items-center justify-between gap-2">
+						<div class="flex flex-wrap gap-1.5">
+							{post.sharedTags.slice(0, 2).map((tag) => (
+								<span class="rounded-full bg-amber-500/10 dark:bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-800 dark:text-amber-300">
+									#{tag.replace(/^#/, '')}
+								</span>
+							))}
+						</div>
+						<span class="shrink-0 text-xs font-medium text-amber-700 dark:text-amber-400 group-hover:translate-x-0.5 transition-transform">
+							Read →
+						</span>
+					</div>
+				</a>
+			))}
+		</div>
+	</section>
+)}

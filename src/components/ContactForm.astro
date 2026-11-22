@@ -206,6 +206,7 @@ const contactEmail = themeConfig.author.email;
             form.classList.add('hidden');
             if (successEl) successEl.classList.remove('hidden');
             form.reset();
+            window.__trackUmami?.('contact-submit', { path: window.location.pathname });
           } else {
             const data: { errors?: Array<{ message: string }> } | null = await response.json().catch(() => null);
             let errorMessage = "Oops! There was a problem submitting your form.";

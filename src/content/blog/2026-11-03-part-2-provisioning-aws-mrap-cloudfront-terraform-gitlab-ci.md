@@ -4,6 +4,8 @@ description: "How to provision globally replicated AWS S3 buckets, a Multi-Regio
 pubDate: '2026-11-03T14:00:00'
 updatedDate: '2026-11-05'
 tags: ["AWS", "Terraform", "CI/CD", "Infrastructure", "Architecture"]
+series: "The Navigator Starter Guide"
+seriesOrder: 2
 sectionNav: "h1 to h2"
 ---
 

@@ -4,6 +4,8 @@ description: "A practical guide to cloning, running, and customizing this modula
 pubDate: '2026-11-03T18:00:00'
 updatedDate: '2026-11-06'
 tags: ["AstroJS", "Architecture", "Tailwind CSS", "Design", "Engineering"]
+series: "The Navigator Starter Guide"
+seriesOrder: 1
 sectionNav: "h1 to h2"
 ---
 

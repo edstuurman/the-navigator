@@ -1,0 +1,66 @@
+---
+import type { PostSeriesContext } from '../utils/relatedPosts';
+
+interface Props {
+	series: PostSeriesContext;
+}
+
+const { series } = Astro.props;
+---
+
+<nav
+	id="series-nav"
+	aria-label={`Series: ${series.name}`}
+	class="not-prose mt-10 rounded-2xl border border-amber-500/25 bg-amber-50/70 dark:bg-amber-950/20 dark:border-amber-500/20 p-5 sm:p-6 shadow-sm"
+>
+	<p class="text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+		Series · Part {series.currentPart} of {series.totalParts}
+	</p>
+	<p class="mt-1 text-base font-semibold text-gray-900 dark:text-white">
+		{series.name}
+	</p>
+	<ol class="mt-4 space-y-1.5">
+		{series.items.map((item) => (
+			<li>
+				{item.isCurrent ? (
+					<div
+						aria-current="page"
+						class="flex items-center justify-between gap-3 rounded-xl bg-amber-500/15 dark:bg-amber-500/15 px-3.5 py-2.5 text-sm font-medium text-gray-900 dark:text-white ring-1 ring-amber-500/30"
+					>
+						<span class="flex items-center gap-2.5 min-w-0">
+							<span class="shrink-0 inline-flex items-center rounded-md bg-amber-500/20 dark:bg-amber-500/25 px-2 py-0.5 text-xs font-semibold text-amber-800 dark:text-amber-300">
+								Part {item.partNumber}
+							</span>
+							<span class="truncate">{item.title}</span>
+						</span>
+						<span class="shrink-0 rounded-full bg-amber-500/20 dark:bg-amber-500/25 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-300">
+							Current
+						</span>
+					</div>
+				) : (
+					<a
+						href={`/blog/${item.id}/`}
+						data-track-event="series-click"
+						data-track-label={item.id}
+						class="group flex items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-amber-500/10 dark:hover:bg-amber-500/10 transition-colors no-underline"
+					>
+						<span class="flex items-center gap-2.5 min-w-0">
+							<span class="shrink-0 inline-flex items-center rounded-md bg-gray-900/5 dark:bg-white/10 px-2 py-0.5 text-xs font-semibold text-gray-600 dark:text-gray-400 group-hover:text-amber-700 dark:group-hover:text-amber-400 transition-colors">
+								Part {item.partNumber}
+							</span>
+							<span class="truncate group-hover:text-amber-700 dark:group-hover:text-amber-400 transition-colors">
+								{item.title}
+							</span>
+						</span>
+						<span
+							aria-hidden="true"
+							class="shrink-0 text-xs font-medium text-gray-400 dark:text-gray-500 group-hover:text-amber-700 dark:group-hover:text-amber-400 group-hover:translate-x-0.5 transition-all"
+						>
+							→
+						</span>
+					</a>
+				)}
+			</li>
+		))}
+	</ol>
+</nav>

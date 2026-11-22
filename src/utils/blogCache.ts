@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import type { CollectionEntry } from 'astro:content';
+import type { RelatedPostItem, PostSeriesContext } from './relatedPosts';
 
 const BLOG_TEMPLATE_DIGEST = (() => {
   const h = crypto.createHash('sha256');
@@ -8,6 +9,10 @@ const BLOG_TEMPLATE_DIGEST = (() => {
     'src/layouts/BlogPost.astro',
     'src/layouts/BaseLayout.astro',
     'src/components/Footer.astro',
+    'src/components/Head.astro',
+    'src/components/SeriesBox.astro',
+    'src/components/RelatedPosts.astro',
+    'src/utils/relatedPosts.ts',
     'src/theme.config.ts',
     'src/data/techTerms.ts',
     'src/plugins/rehype-tech-tooltips.mjs',
@@ -15,12 +20,14 @@ const BLOG_TEMPLATE_DIGEST = (() => {
     'src/scripts/section-nav.ts',
     'src/scripts/tech-tooltips.ts',
     'src/scripts/mermaid-zoom.ts',
+    'src/scripts/article-engagement.ts',
     'src/styles/global.css',
     'src/plugins/remark-alerts.mjs',
     'src/plugins/rehype-mermaid-a11y.mjs',
     'src/components/scripts/TechTooltipsScript.astro',
     'src/components/scripts/MermaidZoomScript.astro',
     'src/components/scripts/YouTubeEmbedScript.astro',
+    'src/components/scripts/ArticleEngagementScript.astro',
   ]) {
     try {
       h.update(fs.readFileSync(p));
@@ -39,12 +46,14 @@ export type AdjacentPost = {
 
 /**
  * Computes a deterministic cache key for an individual blog post route.
- * Changes when the post body, metadata, adjacent navigation cards, or layout templates change.
+ * Changes when the post body, metadata, adjacent navigation cards, related posts, series context, or layout templates change.
  */
 export function computeBlogCacheKey(
   post: CollectionEntry<'blog'>,
   nextPost: AdjacentPost,
-  prevPost: AdjacentPost
+  prevPost: AdjacentPost,
+  relatedPosts: RelatedPostItem[] = [],
+  seriesContext: PostSeriesContext | null = null
 ): string {
   const hash = crypto.createHash('sha256');
   hash.update(BLOG_TEMPLATE_DIGEST);
@@ -55,6 +64,8 @@ export function computeBlogCacheKey(
   hash.update(String(post.data.pubDate?.valueOf() || ''));
   hash.update(String(post.data.updatedDate?.valueOf() || ''));
   hash.update((post.data.tags || []).join(','));
+  hash.update(post.data.series ?? '');
+  hash.update(String(post.data.seriesOrder ?? ''));
   hash.update(post.data.heroImage ? JSON.stringify(post.data.heroImage) : '');
   hash.update(
     JSON.stringify([
@@ -66,6 +77,12 @@ export function computeBlogCacheKey(
   );
   hash.update(nextPost ? `${nextPost.id}:${nextPost.title}` : 'none');
   hash.update(prevPost ? `${prevPost.id}:${prevPost.title}` : 'none');
+  hash.update(relatedPosts.map((p) => `${p.id}:${p.title}`).join('|'));
+  hash.update(
+    seriesContext
+      ? `${seriesContext.name}:${seriesContext.items.map((i) => `${i.partNumber}:${i.id}:${i.title}`).join('|')}`
+      : 'none'
+  );
   return hash.digest('hex');
 }
 

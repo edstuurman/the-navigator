@@ -109,7 +109,7 @@ export interface HeroConfig {
    * - 'metrics': High-impact systems hero with eyebrow, headline, lead summary, metric bar, CTA pills, and optional edge telemetry pill.
    * - 'classic': Original editorial 2-column narrative card driven by `src/content/pages/home.md`.
    */
-  style: 'metrics' | 'metrics';
+  style: 'classic' | 'metrics';
   /** Optional eyebrow override for 'metrics' mode (falls back to `home.md` `intro.eyebrow`) */
   eyebrow?: string;
   /** Optional headline override for 'metrics' mode (falls back to `home.md` `intro.heading`) */

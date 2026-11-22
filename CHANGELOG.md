@@ -4,6 +4,12 @@ All notable changes to this starter theme and infrastructure blueprint are docum
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+- **Series Navigation & Related Reading**: Added multi-part `series` / `seriesOrder` frontmatter support with an inline `SeriesBox` navigation card, header series pill, and IDF-weighted tag similarity `RelatedPosts` grid on blog articles.
+- **Umami Engagement & Interaction Telemetry**: Added `window.__umamiQueue` / `window.__trackUmami` event queueing in `Head.astro` and progressive-enhancement tracking for genuine article reads (`article-read`), series and related-post clicks, code block copies, Mermaid diagram zoom modals, YouTube video plays, photo lightbox opens, and contact form submissions.
+
 ## [2026-11-19] — The Navigator v1.5.0 Release
 
 ### Added & Changed

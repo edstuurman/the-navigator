@@ -47,6 +47,9 @@ const blog = defineCollection({
 			author: z.string().optional().default(siteConfig.author.name),
 			// Tags are required, at least one tag must be provided
 			tags: z.array(z.string()).min(1, "At least one tag is required"),
+			// Optional multi-part series grouping (renders a compact series navigation box on the article)
+			series: z.string().optional(),
+			seriesOrder: z.number().int().positive().optional(),
 			// Section navigation pills (optional, e.g. sectionNav: true, "h1 to h2", "h2", [1, 2])
 			showSections: z.boolean().optional(),
 			sectionNav: sectionNavSchema.optional(),

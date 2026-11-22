@@ -13,6 +13,8 @@ function loadPlayer(figure: HTMLElement): void {
   const videoId = figure.dataset.videoId;
   if (!videoId || figure.querySelector('iframe')) return;
 
+  window.__trackUmami?.('youtube-play', { videoId, path: window.location.pathname });
+
   const iframe = document.createElement('iframe');
   iframe.src = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0`;
   iframe.title = figure.dataset.title || 'YouTube video player';

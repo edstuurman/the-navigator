@@ -4,6 +4,12 @@ import BlogPost from '../../layouts/BlogPost.astro';
 import { getReadingTime, getReadingTimeMinutes, getWordCount } from '../../utils/readingTime';
 import { hasVideoEmbed } from '../../utils/postVideo';
 import { computeBlogCacheKey, type AdjacentPost } from '../../utils/blogCache';
+import {
+	getRelatedPosts,
+	getPostSeriesContext,
+	type RelatedPostItem,
+	type PostSeriesContext,
+} from '../../utils/relatedPosts';
 import { isFeatureEnabled } from '../../utils/features';
 
 export async function getStaticPaths() {
@@ -32,14 +38,20 @@ export async function getStaticPaths() {
 				}
 			: null;
 
+		const seriesContext = getPostSeriesContext(post, posts);
+		const excludeIds = new Set(seriesContext?.items.map((item) => item.id) ?? []);
+		const relatedPosts = getRelatedPosts(post, posts, { limit: 3, excludeIds });
+
 		return {
 			params: { slug: post.id },
 			props: {
 				post,
 				nextPost,
 				prevPost,
+				relatedPosts,
+				seriesContext,
 			},
-			cacheKey: computeBlogCacheKey(post, nextPost, prevPost),
+			cacheKey: computeBlogCacheKey(post, nextPost, prevPost, relatedPosts, seriesContext),
 		};
 	});
 }
@@ -48,9 +60,11 @@ interface Props {
 	post: CollectionEntry<'blog'>;
 	nextPost: AdjacentPost;
 	prevPost: AdjacentPost;
+	relatedPosts: RelatedPostItem[];
+	seriesContext: PostSeriesContext | null;
 }
 
-const { post, nextPost, prevPost } = Astro.props;
+const { post, nextPost, prevPost, relatedPosts, seriesContext } = Astro.props;
 if (!isFeatureEnabled('blog') || !post) {
 	return new Response(null, { status: 404, statusText: 'Not Found' });
 }
@@ -70,6 +84,8 @@ const hasYouTube = hasVideoEmbed(post.body);
 	wordCount={wordCount}
 	nextPost={nextPost}
 	prevPost={prevPost}
+	relatedPosts={relatedPosts}
+	seriesContext={seriesContext}
 	headings={headings}
 	hasMermaid={hasMermaid}
 	hasYouTube={hasYouTube}

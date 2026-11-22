@@ -314,6 +314,8 @@ function openDiagramModal(sourceSvg: SVGSVGElement, triggerEl: HTMLElement) {
   state.overlay.classList.add('is-open');
   document.body.style.overflow = 'hidden';
 
+  window.__trackUmami?.('mermaid-zoom', { diagram: sourceSvg.id || 'diagram', path: window.location.pathname });
+
   const closeBtn = state.overlay.querySelector<HTMLButtonElement>('[data-action="close"]');
   closeBtn?.focus({ preventScroll: true });
 }

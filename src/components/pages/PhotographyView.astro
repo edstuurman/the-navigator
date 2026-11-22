@@ -610,6 +610,10 @@ const breadcrumbs =
         modalEl.classList.add('flex');
         document.body.style.overflow = 'hidden';
         showSlide(index, syncHistory);
+        const cards = getOrderedCards();
+        const normalizedIndex = cards.length > 0 ? ((index % cards.length) + cards.length) % cards.length : -1;
+        const openedCard = triggerEl ?? (normalizedIndex >= 0 ? cards[normalizedIndex] : undefined);
+        window.__trackUmami?.('photo-lightbox', { photoId: Number(openedCard?.dataset.photoId || 0) });
         closeBtn?.focus();
       }
 
