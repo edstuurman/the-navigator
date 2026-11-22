@@ -86,6 +86,7 @@ const jsonLd = {
   url: `${siteConfig.site.url}/photography/${photo.id}/`,
   contentUrl: `${siteConfig.site.url}${fullImageSrc}`,
   thumbnailUrl: `${siteConfig.site.url}${fullImageSrc}`,
+  ...(imgMeta ? { width: imgMeta.width, height: imgMeta.height } : {}),
   representativeOfPage: true,
   datePublished: photo.pubDate.toISOString(),
   author: {
@@ -155,6 +156,8 @@ const jsonLd = {
             href={fullImageSrc}
             target="_blank"
             rel="noopener noreferrer"
+            data-full-src={fullImageSrc}
+            data-photo-location={photo.location}
             class="group relative block w-full rounded-2xl overflow-hidden shadow-2xl ring-1 ring-gray-900/10 dark:ring-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 cursor-zoom-in"
             title="Open original full-resolution image"
             aria-label={`Open original full-resolution image of ${photo.title}`}

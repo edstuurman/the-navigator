@@ -36,7 +36,7 @@ fi
 
 PLAN_FILE="$(mktemp)"
 
-awk -F'\t' -v force_mutable="${FORCE_MUTABLE_RESYNC:-0}" '
+awk -F'\t' -v force_mutable="${FORCE_MUTABLE_RESYNC:-0}" -v force_immutable="${FORCE_IMMUTABLE_RESYNC:-0}" '
   NR == FNR {
     if (NF >= 2 && $1 != "None") {
       remote_etag[$1] = $2
@@ -52,6 +52,8 @@ awk -F'\t' -v force_mutable="${FORCE_MUTABLE_RESYNC:-0}" '
     if (!(key in remote_etag)) {
       print "UPLOAD\t" key
     } else if (!is_immutable && force_mutable == "1") {
+      print "UPLOAD\t" key
+    } else if (is_immutable && force_immutable == "1") {
       print "UPLOAD\t" key
     } else if (remote_etag[key] != md5) {
       # Skip multipart ETag false-positives on immutable content-hashed assets
@@ -112,27 +114,19 @@ while IFS="$tab" read -r action key; do
   fi
 done < "$PLAN_FILE"
 
-# 1. Upload immutable assets concurrently
-if [ -s "$IMMUTABLE_FILE" ]; then
-  echo "==> Uploading immutable assets in parallel (concurrency: ${PARALLEL_JOBS})..."
-  xargs -n 1 -P "$PARALLEL_JOBS" -I {} bash -c '
-    set -euo pipefail
-    key="$1"
-    bucket="$2"
-    aws s3 cp "$key" "s3://${bucket}/${key}" \
-      --cache-control "public, max-age=31536000, immutable" \
-      --only-show-errors
-    echo "  [uploaded] $key"
-  ' _ {} "$BUCKET" < "$IMMUTABLE_FILE"
+if [ "${FORCE_IMMUTABLE_RESYNC:-0}" = "1" ] && [ -s "$IMMUTABLE_FILE" ]; then
+  CHANGED_PATHS+=("/*")
 fi
 
-# 2. Upload mutable routes concurrently with 4-tier split Edge (s-maxage) & Browser (max-age) Cache-Control
-if [ -s "$MUTABLE_FILE" ]; then
-  echo "==> Uploading mutable routes in parallel (concurrency: ${PARALLEL_JOBS})..."
-  xargs -n 1 -P "$PARALLEL_JOBS" -I {} bash -c '
-    set -euo pipefail
-    key="$1"
-    bucket="$2"
+# Shared upload worker preserving 4-tier Cache-Control and explicit Content-Type mapping
+UPLOAD_WORKER='
+  set -euo pipefail
+  mode="$1"
+  bucket="$2"
+  key="$3"
+  if [ "$mode" = "immutable" ]; then
+    cache_ctrl="public, max-age=31536000, immutable"
+  else
     case "$key" in
       og/*|*.png|*.svg|*.ico|*.webp|*.jpg|*.jpeg)
         cache_ctrl="public, max-age=86400, s-maxage=31536000, stale-while-revalidate=86400"
@@ -144,18 +138,41 @@ if [ -s "$MUTABLE_FILE" ]; then
         cache_ctrl="public, max-age=0, s-maxage=31536000, must-revalidate"
         ;;
     esac
-    content_type_args=()
-    case "$key" in
-      *.xsl)         content_type_args=(--content-type "text/xsl") ;;
-      *.webmanifest) content_type_args=(--content-type "application/manifest+json") ;;
-      *.txt)         content_type_args=(--content-type "text/plain; charset=utf-8") ;;
-    esac
-    aws s3 cp "$key" "s3://${bucket}/${key}" \
-      --cache-control "$cache_ctrl" \
-      "${content_type_args[@]}" \
-      --only-show-errors
-    echo "  [uploaded] $key"
-  ' _ {} "$BUCKET" < "$MUTABLE_FILE"
+  fi
+  content_type_args=()
+  case "$key" in
+    *.webp)        content_type_args=(--content-type "image/webp") ;;
+    *.avif)        content_type_args=(--content-type "image/avif") ;;
+    *.png)         content_type_args=(--content-type "image/png") ;;
+    *.jpg|*.jpeg)  content_type_args=(--content-type "image/jpeg") ;;
+    *.svg)         content_type_args=(--content-type "image/svg+xml") ;;
+    *.ico)         content_type_args=(--content-type "image/x-icon") ;;
+    *.woff2)       content_type_args=(--content-type "font/woff2") ;;
+    *.woff)        content_type_args=(--content-type "font/woff") ;;
+    *.js|*.mjs)    content_type_args=(--content-type "application/javascript; charset=utf-8") ;;
+    *.css)         content_type_args=(--content-type "text/css; charset=utf-8") ;;
+    *.xsl)         content_type_args=(--content-type "text/xsl") ;;
+    *.webmanifest) content_type_args=(--content-type "application/manifest+json") ;;
+    *.txt)         content_type_args=(--content-type "text/plain; charset=utf-8") ;;
+    *.html)        content_type_args=(--content-type "text/html; charset=utf-8") ;;
+  esac
+  aws s3 cp "$key" "s3://${bucket}/${key}" \
+    --cache-control "$cache_ctrl" \
+    ${content_type_args[@]+"${content_type_args[@]}"} \
+    --only-show-errors
+  echo "  [uploaded] $key"
+'
+
+# 1. Upload immutable assets concurrently
+if [ -s "$IMMUTABLE_FILE" ]; then
+  echo "==> Uploading immutable assets in parallel (concurrency: ${PARALLEL_JOBS})..."
+  xargs -n 1 -P "$PARALLEL_JOBS" -I {} bash -c "$UPLOAD_WORKER" _ "immutable" "$BUCKET" {} < "$IMMUTABLE_FILE"
+fi
+
+# 2. Upload mutable routes concurrently with 4-tier split Edge (s-maxage) & Browser (max-age) Cache-Control
+if [ -s "$MUTABLE_FILE" ]; then
+  echo "==> Uploading mutable routes in parallel (concurrency: ${PARALLEL_JOBS})..."
+  xargs -n 1 -P "$PARALLEL_JOBS" -I {} bash -c "$UPLOAD_WORKER" _ "mutable" "$BUCKET" {} < "$MUTABLE_FILE"
 fi
 
 # 3. Delete obsolete remote objects concurrently

@@ -323,22 +323,56 @@ export function getImagesForUrl(item, distDir = path.join(process.cwd(), 'dist')
       }
     };
 
+    const decodeHtmlEntities = (str) =>
+      str
+        ? str
+            .replace(/&amp;/g, '&')
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;|&#x27;|&apos;/g, "'")
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+        : str;
+
     // 1a. Individual photograph permalink page (/photography/[id]/)
     if (/^\/photography\/\d+\/?$/.test(urlObj.pathname)) {
-      const pageTitle = extractPageTitle(html);
+      const pageTitle = decodeHtmlEntities(extractPageTitle(html));
       // Find the main photo image in the stage
-      const stageMatch = html.match(/<a\b[^>]*\bcursor-zoom-in\b[^>]*>[\s\S]*?<img\b[^>]*src="([^">]+)"[^>]*>/i);
-      const photoHref = stageMatch ? stageMatch[1] : null;
+      const stageTagMatch = html.match(/<a\b[^>]*\bcursor-zoom-in\b[^>]*>/i);
+      let photoHref = null;
+      let geoLocation = null;
+
+      if (stageTagMatch) {
+        const stageTag = stageTagMatch[0];
+        const fullSrcMatch = stageTag.match(/\bdata-full-src="([^"]+)"/i);
+        const hrefMatch = stageTag.match(/\bhref="([^"]+)"/i);
+        const locationMatch = stageTag.match(/\bdata-photo-location="([^"]+)"/i);
+
+        photoHref = fullSrcMatch ? fullSrcMatch[1] : hrefMatch ? hrefMatch[1] : null;
+        if (locationMatch) {
+          geoLocation = decodeHtmlEntities(locationMatch[1]).trim() || null;
+        }
+      }
+
+      if (!photoHref) {
+        const stageImgMatch = html.match(
+          /<a\b[^>]*\bcursor-zoom-in\b[^>]*>[\s\S]*?<img\b[^>]*\bsrc="([^">]+)"[^>]*>/i
+        );
+        photoHref = stageImgMatch ? stageImgMatch[1] : null;
+      }
 
       const storyMatch = html.match(/<meta name="description" content="([^"]+)"/i);
-      const caption = storyMatch ? storyMatch[1] : `${pageTitle} — captured in ${AUTHOR_LOCATION}.`;
+      const caption = storyMatch
+        ? decodeHtmlEntities(storyMatch[1])
+        : geoLocation
+          ? `${pageTitle} — captured in ${geoLocation}.`
+          : pageTitle;
 
       if (photoHref) {
         addImage({
           url: photoHref,
           title: pageTitle,
           caption: caption,
-          geoLocation: AUTHOR_LOCATION,
+          ...(geoLocation ? { geoLocation } : {}),
         });
       }
       return images;
@@ -354,19 +388,37 @@ export function getImagesForUrl(item, distDir = path.join(process.cwd(), 'dist')
         ...html.matchAll(/<a\b[^>]*class="[^"]*\bgallery-photo-card\b[^"]*"[^>]*>/g),
       ];
       galleryMatches.forEach((m, idx) => {
-        const hrefMatch = m[0].match(/\bhref="([^"]+)"/);
-        if (!hrefMatch) return;
-        const href = hrefMatch[1];
-        const titleMatch = m[0].match(/\bdata-photo-title="([^"]+)"/);
-        const altMatch = m[0].match(/\bdata-photo-alt="([^"]+)"/);
-        const idMatch = m[0].match(/\bdata-photo-id="(\d+)"/);
-        const photoTitle = titleMatch ? titleMatch[1] : `Photograph #${idMatch ? idMatch[1] : idx + 1}`;
-        const photoCaption = altMatch ? altMatch[1] : `${photoTitle} — ${AUTHOR_NAME}`;
+        const tag = m[0];
+        const fullSrcMatch = tag.match(/\bdata-full-src="([^"]+)"/i);
+        const hrefMatch = tag.match(/\bhref="([^"]+)"/i);
+        const rawHref = hrefMatch ? hrefMatch[1] : null;
+        const photoUrl = fullSrcMatch
+          ? fullSrcMatch[1]
+          : rawHref && /\.(webp|avif|jpe?g|png|gif|svg)$/i.test(rawHref)
+            ? rawHref
+            : null;
+        if (!photoUrl) return;
+
+        const titleMatch = tag.match(/\bdata-photo-title="([^"]+)"/i);
+        const altMatch = tag.match(/\bdata-photo-alt="([^"]+)"/i);
+        const idMatch = tag.match(/\bdata-photo-id="(\d+)"/i);
+        const locationMatch = tag.match(/\bdata-photo-location="([^"]+)"/i);
+
+        const photoTitle = titleMatch
+          ? decodeHtmlEntities(titleMatch[1])
+          : `Photograph #${idMatch ? idMatch[1] : idx + 1}`;
+        const photoCaption = altMatch
+          ? decodeHtmlEntities(altMatch[1])
+          : `${photoTitle} — ${AUTHOR_NAME}`;
+        const geoLocation = locationMatch
+          ? decodeHtmlEntities(locationMatch[1]).trim() || null
+          : null;
+
         addImage({
-          url: href,
+          url: photoUrl,
           title: `${photoTitle} — ${AUTHOR_NAME}`,
           caption: photoCaption,
-          geoLocation: AUTHOR_LOCATION,
+          ...(geoLocation ? { geoLocation } : {}),
         });
       });
       return images;

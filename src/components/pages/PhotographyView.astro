@@ -275,13 +275,15 @@ const breadcrumbs =
       <div id="photo-gallery-grid" class="photo-justified-grid">
         {galleryCards.map((item) => (
           <a
-            href={item.fullSrc}
+            href={`/photography/${item.photoId}/`}
             class="gallery-photo-card border-beam-card group"
             style={item.styleVars}
             data-photo-id={item.photoId}
+            data-full-src={item.fullSrc}
             data-photo-date={item.timestamp}
             data-photo-title={item.title}
             data-photo-date-label={item.dateFormatted}
+            data-photo-location={item.location}
             data-photo-attribution={item.attribution}
             data-photo-alt={item.alt}
             aria-label={`Open ${item.title} (${item.dateFormatted}) in lightbox`}
@@ -546,7 +548,7 @@ const breadcrumbs =
         if (cards.length <= 1) return;
         for (const offset of [-1, 1]) {
           const neighbor = cards[(index + offset + cards.length) % cards.length];
-          const href = neighbor?.getAttribute('href');
+          const href = neighbor?.dataset.fullSrc || neighbor?.getAttribute('href');
           if (href) {
             const preload = new window.Image();
             preload.src = href;
@@ -562,7 +564,7 @@ const breadcrumbs =
         activeIndex = normalized;
 
         const card = cards[normalized];
-        const fullSrc = card.getAttribute('href') || '';
+        const fullSrc = card.dataset.fullSrc || card.getAttribute('href') || '';
         const title = card.dataset.photoTitle || '';
         const dateLabel = card.dataset.photoDateLabel || '';
         const attribution = card.dataset.photoAttribution || '';
@@ -628,6 +630,7 @@ const breadcrumbs =
       gridEl.addEventListener('click', (event) => {
         const target = (event.target as HTMLElement | null)?.closest<HTMLAnchorElement>('.gallery-photo-card');
         if (!target) return;
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
         event.preventDefault();
         const cards = getOrderedCards();
         const idx = cards.indexOf(target);
