@@ -38,7 +38,7 @@ ci:image:
     - printf '{"auths":{"%s":{"auth":"%s"}}}' "$CI_REGISTRY" "$(printf '%s:%s' "$CI_REGISTRY_USER" "$CI_REGISTRY_PASSWORD" | base64 | tr -d '\n')" > /kaniko/.docker/config.json
     - /kaniko/executor --context "$CI_PROJECT_DIR" --dockerfile "$CI_PROJECT_DIR/Dockerfile.ci" --destination "$CI_BUILD_IMAGE" --cache=true --compressed-caching=false
   rules:
-    - if: $CI_COMMIT_BRANCH == 'main'
+    - if: $CI_COMMIT_BRANCH == 'main' && $CI_PIPELINE_SOURCE == 'push'
       changes:
         - Dockerfile.ci
         - package-lock.json
@@ -71,7 +71,7 @@ terraform:bootstrap:
     - terraform -chdir=terraform/bootstrap init -input=false
     - terraform -chdir=terraform/bootstrap apply -input=false -auto-approve -var="state_bucket_name=${STATE_BUCKET}" -var="state_bucket_region=${STATE_REGION}"
   rules:
-    - if: $CI_COMMIT_BRANCH == 'main'
+    - if: $CI_COMMIT_BRANCH == 'main' && $CI_PIPELINE_SOURCE != 'schedule'
       when: manual
       allow_failure: true
 
@@ -90,11 +90,11 @@ terraform:plan:
       - terraform/.terraform.lock.hcl
     expire_in: 7 days
   rules:
-    - if: $CI_COMMIT_BRANCH == 'main' && $TF_VAR_environment_domain
+    - if: $CI_COMMIT_BRANCH == 'main' && $CI_PIPELINE_SOURCE == 'push' && $TF_VAR_environment_domain
       changes:
         - terraform/**/*
       when: on_success
-    - if: $CI_COMMIT_BRANCH == 'main'
+    - if: $CI_COMMIT_BRANCH == 'main' && $CI_PIPELINE_SOURCE != 'schedule'
       when: manual
       allow_failure: true
 
@@ -109,7 +109,7 @@ terraform:apply:
     - echo "==> Infrastructure provisioned successfully:"
     - terraform -chdir=terraform output
   rules:
-    - if: $CI_COMMIT_BRANCH == 'main'
+    - if: $CI_COMMIT_BRANCH == 'main' && $CI_PIPELINE_SOURCE != 'schedule'
       when: manual
       allow_failure: true
 
