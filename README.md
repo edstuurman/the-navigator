@@ -1,6 +1,7 @@
 # The Navigator — Modular Astro 7 & Tailwind CSS v4 Starter Theme
 
 [![Live Interactive Demo: the-navigator-sage.vercel.app](https://img.shields.io/badge/%F0%9F%A7%AD%20Live%20Interactive%20Demo-the--navigator--sage.vercel.app-d97706?style=for-the-badge&labelColor=111827)](https://the-navigator-sage.vercel.app/)
+[![Featured in Astro Themes](https://img.shields.io/badge/Astro_Themes-The_Navigator-ff5d01?style=for-the-badge&logo=astro&logoColor=white&labelColor=111827)](https://astro.build/themes/details/the-navigator/)
 [![CI/CD Pipeline](https://img.shields.io/github/actions/workflow/status/edstuurman/the-navigator/deploy.yml?branch=main&style=for-the-badge&logo=githubactions&logoColor=white&label=CI%2FCD%20Dry--Run&labelColor=111827)](https://github.com/edstuurman/the-navigator/actions/workflows/deploy.yml)
 [![Astro 7.4](https://img.shields.io/badge/Astro-7.4-ff5d01?style=for-the-badge&logo=astro&logoColor=white&labelColor=111827)](https://astro.build/)
 [![Tailwind CSS v4](https://img.shields.io/badge/Tailwind_CSS-v4-38bdf8?style=for-the-badge&logo=tailwindcss&logoColor=white&labelColor=111827)](https://tailwindcss.com/)
@@ -10,7 +11,7 @@
 >
 > Try **The Navigator** in your browser — test the Light/Dark theme switcher, homepage carousels, photo gallery & lightbox (`?photo=1`), interactive Markdown diagrams, hover tooltips, and floating section navigator.
 
-**The Navigator** is an open-source, modular starter template for a fast personal website, blog, living CV, activity log, and photography portfolio built with **Astro 7.4** and **Tailwind CSS v4**.
+**The Navigator** is an open-source, modular starter template for a fast personal website, blog, living CV, activity log, and photography portfolio built with **Astro 7.4** and **Tailwind CSS v4**. Featured in the official **[Astro Themes Directory](https://astro.build/themes/details/the-navigator/)**.
 
 Every section of the site is **toggleable in a single configuration file**, and you can set any page (such as your Blog or About page) as your front page. Deploy the static output for free on **Vercel, Netlify, Cloudflare Pages, or GitHub/GitLab Pages**, or use the optional **Terraform** stack for multi-region **AWS S3 + CloudFront** hosting.
 
