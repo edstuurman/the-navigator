@@ -177,7 +177,7 @@ const LOG_TEMPLATE_DIGEST = (() => {
     'src/styles/global.css',
     'src/theme.config.ts',
     'src/data/techTerms.ts',
-    'src/plugins/rehype-tech-tooltips.mjs',
+    'package-lock.json',
     'src/utils/photoImages.ts',
   ]) {
     try {

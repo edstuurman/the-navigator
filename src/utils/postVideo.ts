@@ -1,5 +1,5 @@
-import { ensureYouTubeThumbnail } from './youtube-thumbnail.mjs';
-import { parseYouTubeId } from '../plugins/remark-youtube.mjs';
+import { ensureYouTubeThumbnail } from 'remark-youtube-facade/thumbnails';
+import { parseYouTubeId } from 'remark-youtube-facade';
 
 const YOUTUBE_BLOCK_RE = /^```youtube[ \t]*\r?\n([\s\S]*?)^```/m;
 

@@ -7,14 +7,30 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { remarkAlerts } from './src/plugins/remark-alerts.mjs';
-import { remarkYouTube } from './src/plugins/remark-youtube.mjs';
-import { THUMB_CACHE_DIR, THUMB_PUBLIC_PREFIX, THUMB_FILENAME_RE, buildThumbnailBuffer, remoteThumbnailUrl } from './src/utils/youtube-thumbnail.mjs';
-import { rehypeMermaidA11y } from './src/plugins/rehype-mermaid-a11y.mjs';
-import { rehypeTechTooltips, TECH_TOOLTIPS_DIGEST } from './src/plugins/rehype-tech-tooltips.mjs';
+import { remarkYouTubeFacade } from 'remark-youtube-facade';
+import {
+  DEFAULT_CACHE_DIR as THUMB_CACHE_DIR,
+  DEFAULT_PUBLIC_PREFIX as THUMB_PUBLIC_PREFIX,
+  THUMB_FILENAME_RE,
+  buildThumbnailBuffer,
+  remoteThumbnailUrl,
+} from 'remark-youtube-facade/thumbnails';
+import { rehypeMermaidA11y } from 'rehype-mermaid-a11y';
+import { rehypeTechTooltips, createTermsDigest } from 'rehype-tech-tooltips';
+import { TECH_TERMS } from './src/data/techTerms.ts';
 import { getImagesForUrl, getLastModForUrl } from './src/utils/sitemap-images.mjs';
 import { themeConfig } from './src/theme.config.ts';
 import { isFeatureEnabled, isUrlEnabled } from './src/utils/features.ts';
 import rehypeMermaid from 'rehype-mermaid';
+
+const TOOLTIPS_ENABLED = themeConfig.tooltips?.enabled ?? true;
+const TOOLTIPS_AUTO_LINK = themeConfig.tooltips?.autoLink ?? 'first';
+const TOOLTIPS_EXCLUDE_PATHS = ['/src/content/pages/'];
+const TECH_TOOLTIPS_DIGEST = createTermsDigest(TECH_TERMS, {
+  enabled: TOOLTIPS_ENABLED,
+  autoLink: TOOLTIPS_AUTO_LINK,
+  excludePaths: TOOLTIPS_EXCLUDE_PATHS,
+});
 
 /**
  * Astro integration ensuring sitemap.xml exists alongside sitemap-index.xml
@@ -373,7 +389,7 @@ export default defineConfig({
       excludeLangs: ['mermaid'],
     },
     processor: unified({
-      remarkPlugins: [[remarkAlerts, { version: 'v2-note' }], remarkYouTube],
+      remarkPlugins: [[remarkAlerts, { version: 'v2-note' }], remarkYouTubeFacade],
       rehypePlugins: [
         [
           rehypeMermaid,
@@ -414,7 +430,16 @@ export default defineConfig({
           },
         ],
         [rehypeMermaidA11y, { version: 'v2-build-time-wrapper' }],
-        [rehypeTechTooltips, { digest: TECH_TOOLTIPS_DIGEST }],
+        [
+          rehypeTechTooltips,
+          {
+            terms: TECH_TERMS,
+            enabled: TOOLTIPS_ENABLED,
+            autoLink: TOOLTIPS_AUTO_LINK,
+            excludePaths: TOOLTIPS_EXCLUDE_PATHS,
+            digest: TECH_TOOLTIPS_DIGEST,
+          },
+        ],
       ],
     }),
   },

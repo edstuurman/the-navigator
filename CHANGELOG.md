@@ -4,6 +4,12 @@ All notable changes to this starter theme and infrastructure blueprint are docum
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2026-11-28] — Published npm Markdown Plugins (v1.4.0)
+
+### Changed
+- **Dogfooded Zero-Dependency npm Plugin Packages**: Replaced vendored local Markdown/build-time plugins with the published npm packages [`rehype-mermaid-a11y`](https://www.npmjs.com/package/rehype-mermaid-a11y), [`rehype-tech-tooltips`](https://www.npmjs.com/package/rehype-tech-tooltips), and [`remark-youtube-facade`](https://www.npmjs.com/package/remark-youtube-facade) in `package.json`, `astro.config.mjs`, `postVideo.ts`, and `TechTooltipsScript.astro`.
+- **Standalone Tooltip Stylesheet**: Switched `TechTooltipsScript.astro` to import the package stylesheet `rehype-tech-tooltips/styles.css` directly, removing redundant inline style overrides while preserving `<Tooltip />` arrow alignment.
+
 ## [2026-11-28] — The Navigator v1.6.0 Release
 
 ### Added & Changed

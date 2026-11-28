@@ -12,7 +12,7 @@ This post serves as a live visual reference and kitchen-sink test suite for the 
 
 ## 1. Automatic Technical Acronym Tooltips
 
-Any acronym defined in `src/data/techTerms.ts` (such as MRAP, OAC, SigV4A, BGP, NVMe, ZFS, or AST) is automatically upgraded at build time by `src/plugins/rehype-tech-tooltips.mjs` into an accessible, viewport-clamped glassmorphic popover card with domain category badges and keyboard `Escape` support.
+Any acronym defined in `src/data/techTerms.ts` (such as MRAP, OAC, SigV4A, BGP, NVMe, ZFS, or AST) is automatically upgraded at build time by [`rehype-tech-tooltips`](https://www.npmjs.com/package/rehype-tech-tooltips) into an accessible, viewport-clamped glassmorphic popover card with domain category badges and keyboard `Escape` support.
 
 By default (`tooltips.autoLink: 'first'` in `src/theme.config.ts`), only the first occurrence of each term per article receives a tooltip so paragraphs stay clean and readable.
 
@@ -20,7 +20,7 @@ By default (`tooltips.autoLink: 'first'` in `src/theme.config.ts`), only the fir
 
 ## 2. Build-Time Inline SVG Mermaid Diagrams
 
-Fenced ```mermaid code blocks are compiled at build time via `rehype-mermaid` and enriched with accessible `role="img"` titles by `src/plugins/rehype-mermaid-a11y.mjs`—shipping crisp inline `<svg>` nodes with zero client-side Mermaid runtime bundle:
+Fenced ```mermaid code blocks are compiled at build time via `rehype-mermaid` and enriched with accessible `role="img"` titles by [`rehype-mermaid-a11y`](https://www.npmjs.com/package/rehype-mermaid-a11y)—shipping crisp inline `<svg>` nodes with zero client-side Mermaid runtime bundle:
 
 ```mermaid
 flowchart LR
@@ -91,7 +91,7 @@ resource "aws_cloudfront_origin_access_control" "mrap_oac" {
 
 ## 5. Privacy-Enhanced Click-to-Load YouTube Facade
 
-Fenced ```youtube blocks download and optimize the video poster frame into `.cache/youtube-thumbs/` at build time via `src/plugins/remark-youtube.mjs`. No `youtube-nocookie.com` iframe or third-party tracker is loaded until the reader clicks play:
+Fenced ```youtube blocks download and optimize the video poster frame into `.cache/youtube-thumbs/` at build time via [`remark-youtube-facade`](https://www.npmjs.com/package/remark-youtube-facade). No `youtube-nocookie.com` iframe or third-party tracker is loaded until the reader clicks play:
 
 ```youtube
 https://www.youtube.com/watch?v=kL1PDqzqhM4
