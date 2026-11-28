@@ -42,9 +42,29 @@ function sanitizeAnswerHtml(rawHtml: string): string {
   }
   return out;
 }
+
+const faqItems = faqGroups.flatMap((group) => group.items);
+const faqSchema =
+  faqItems.length > 0
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: faqItems.map((item) => ({
+          '@type': 'Question',
+          name: item.question,
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: sanitizeAnswerHtml(item.answerHtml),
+          },
+        })),
+      }
+    : null;
 ---
 
 <section id="faq" aria-labelledby="faq-heading" class="scroll-mt-16 relative isolate py-20 sm:py-28 border-t border-gray-200/70 dark:border-gray-800">
+  {faqSchema && (
+    <script type="application/ld+json" set:html={JSON.stringify(faqSchema)} />
+  )}
   <div class="mx-auto max-w-7xl px-6 lg:px-8">
     <header class="mx-auto max-w-2xl text-center mb-16 sm:mb-20">
       <p class="text-base/7 font-semibold text-amber-700 dark:text-amber-500">{faq?.eyebrow ?? 'FAQ'}</p>

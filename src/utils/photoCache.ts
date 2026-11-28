@@ -6,6 +6,7 @@ const PHOTO_TEMPLATE_DIGEST = (() => {
   const h = crypto.createHash('sha256');
   for (const p of [
     'src/pages/photography/[id].astro',
+    'src/utils/photoImages.ts',
     'src/layouts/BaseLayout.astro',
     'src/components/Footer.astro',
     'src/components/SectionNav.astro',

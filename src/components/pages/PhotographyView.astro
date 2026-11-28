@@ -3,12 +3,11 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import AmbientGlow from '../AmbientGlow.astro';
 import SectionNav from '../SectionNav.astro';
 import PaginationControls from '../PaginationControls.astro';
-import { Image, getImage } from 'astro:assets';
 import { getEntry } from 'astro:content';
 import { siteConfig } from '../../site.config';
 import { pictureLogsMap, comparePhotoPathsByDateDesc } from '../../utils/pictureLogs';
 import { GALLERY_PAGE_SIZE } from '../../utils/pagination';
-import { photoImageKeys, photoImageModules } from '../../utils/photoImages';
+import { getResponsivePhotoImage, photoImageKeys, photoImageModules } from '../../utils/photoImages';
 
 interface Props {
   currentPage?: number;
@@ -38,7 +37,10 @@ const galleryItems = await Promise.all(
     const photoLog = pictureLogsMap.get(filename);
     const mod = await photoImageModules[path]();
     const imgMeta = mod.default;
-    const fullWebp = await getImage({ src: imgMeta, format: 'webp' });
+    const aspectRatio = Number((imgMeta.width / imgMeta.height).toFixed(4));
+    const responsiveImg = await getResponsivePhotoImage(imgMeta, {
+      maxWidth: aspectRatio > 1.8 ? 960 : 640,
+    });
 
     const title = photoLog?.title ?? `Photograph ${startIdx + index + 1}`;
     const dateFormatted = photoLog?.dateFormatted ?? '2024';
@@ -46,7 +48,6 @@ const galleryItems = await Promise.all(
     const attribution = photoLog?.attribution;
     const photoId = photoLog?.id ?? startIdx + index + 1;
     const timestamp = photoLog ? new Date(photoLog.pubDate).valueOf() : 0;
-    const aspectRatio = Number((imgMeta.width / imgMeta.height).toFixed(4));
 
     return {
       photoId,
@@ -55,8 +56,8 @@ const galleryItems = await Promise.all(
       dateFormatted,
       location,
       attribution,
-      fullSrc: fullWebp.src,
-      imgMeta,
+      fullSrc: responsiveImg.src,
+      responsiveImg,
       aspectRatio,
       alt: `${title} — ${location} (${dateFormatted})`,
       loading: (index < 4 ? 'eager' : 'lazy') as 'eager' | 'lazy',
@@ -164,8 +165,7 @@ const galleryCards = galleryItems.map((item, idx) => {
     `--d-mx:${d.mx}`,
   ].join(';');
   const sizes = `(min-width: 1024px) ${d.sizeExpr}, (min-width: 640px) ${t.sizeExpr}, ${m.sizeExpr}`;
-  const widths = item.aspectRatio > 1.8 ? [220, 320, 420, 560, 720, 840] : [220, 320, 420, 560];
-  return { ...item, styleVars, sizes, widths };
+  return { ...item, styleVars, sizes };
 });
 
 const photoPageEntry = await getEntry('pages', 'photography');
@@ -288,16 +288,16 @@ const breadcrumbs =
             data-photo-alt={item.alt}
             aria-label={`Open ${item.title} (${item.dateFormatted}) in lightbox`}
           >
-            <Image
-              src={item.imgMeta}
-              alt={item.alt}
-              widths={item.widths}
+            <img
+              src={item.responsiveImg.src}
+              srcset={item.responsiveImg.srcset}
               sizes={item.sizes}
-              quality={60}
+              alt={item.alt}
+              width={item.responsiveImg.width}
+              height={item.responsiveImg.height}
               loading={item.loading}
               fetchpriority={item.fetchpriority}
-              inferSize
-              layout="constrained"
+              decoding="async"
               class="gallery-photo-thumb"
             />
           </a>

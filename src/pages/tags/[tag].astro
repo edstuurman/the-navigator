@@ -12,9 +12,8 @@ import { getTagTaxonomy, computeTagCacheKey } from '../../utils/tagTaxonomy';
 import { getLogAnchorPageMap, getGalleryPhotoHref } from '../../utils/logTimeline';
 import { getPaginatedHref } from '../../utils/pagination';
 import TagList from '../../components/TagList.astro';
-import { Image } from 'astro:assets';
 import { siteConfig } from '../../site.config';
-import { loadPhotoImage } from '../../utils/photoImages';
+import { loadPhotoImage, getResponsivePhotoImage } from '../../utils/photoImages';
 import { isFeatureEnabled, isUrlEnabled } from '../../utils/features';
 
 export async function getStaticPaths() {
@@ -47,9 +46,13 @@ const logAnchorPages = await getLogAnchorPageMap();
 const resolvedPhotoLogs = await Promise.all(
   photoLogs.map(async (photo) => {
     const imageMetadata = await loadPhotoImage(photo.imageKey);
+    const responsiveImg = imageMetadata
+      ? await getResponsivePhotoImage(imageMetadata, { maxWidth: 640 })
+      : null;
     return {
       ...photo,
       imageMetadata,
+      responsiveImg,
     };
   })
 );
@@ -344,14 +347,16 @@ const breakdownText = breakdownParts.join(' • ');
                     <div class="grid grid-cols-1 sm:grid-cols-12 gap-6 items-start">
                       <!-- Image Thumbnail Column -->
                       <div class="sm:col-span-5 relative overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-900 ring-1 ring-gray-900/10 dark:ring-white/10 shadow-sm aspect-[4/3] w-full">
-                        {photo.imageMetadata && (
-                          <Image
-                            src={photo.imageMetadata}
-                            alt={photo.title}
-                            widths={[320, 480, 640]}
+                        {photo.responsiveImg && (
+                          <img
+                            src={photo.responsiveImg.src}
+                            srcset={photo.responsiveImg.srcset}
                             sizes="(min-width: 640px) 320px, 90vw"
-                            quality={72}
+                            alt={photo.title}
+                            width={photo.responsiveImg.width}
+                            height={photo.responsiveImg.height}
                             loading="lazy"
+                            decoding="async"
                             class="w-full h-full object-cover transition-transform duration-300 group-hover/card:scale-105"
                           />
                         )}

@@ -4,7 +4,6 @@ import AmbientGlow from '../../components/AmbientGlow.astro';
 import SectionNav from '../../components/SectionNav.astro';
 import FormattedDate from '../../components/FormattedDate.astro';
 import TagList from '../../components/TagList.astro';
-import { Image, getImage } from 'astro:assets';
 import {
   pictureLogs,
   type PictureLog,
@@ -12,7 +11,7 @@ import {
 import { getGalleryPhotoHref } from '../../utils/logTimeline';
 import { computePhotoCacheKey, type AdjacentPhoto } from '../../utils/photoCache';
 import { siteConfig } from '../../site.config';
-import { loadPhotoImage } from '../../utils/photoImages';
+import { getCanonicalPhotoStage, loadPhotoImage } from '../../utils/photoImages';
 import { isFeatureEnabled } from '../../utils/features';
 
 export async function getStaticPaths() {
@@ -64,8 +63,8 @@ if (!isFeatureEnabled('photography') || !photo) {
 }
 
 const imgMeta = await loadPhotoImage(photo.imageKey);
-const fullImage = imgMeta ? await getImage({ src: imgMeta, format: 'webp' }) : null;
-const fullImageSrc = fullImage?.src ?? (imgMeta ? imgMeta.src : '');
+const stage = imgMeta ? await getCanonicalPhotoStage(imgMeta) : null;
+const fullImageSrc = stage?.src ?? (imgMeta ? imgMeta.src : '');
 
 const galleryHref = getGalleryPhotoHref(photo.id);
 
@@ -73,6 +72,24 @@ const pageTitle = `${photo.title} — Photograph #${photo.id}`;
 const description = photo.story
   ? `${photo.location} — ${photo.story}`
   : `${photo.title}, captured in ${photo.location} by ${siteConfig.author.name}.`;
+
+let photoAlt = `${photo.title} — ${photo.location}`;
+if (photo.story) {
+  const firstSentence = photo.story.match(/^[^.!?]+[.!?]?/)?.[0]?.trim();
+  if (firstSentence) {
+    photoAlt = `${photoAlt} — ${firstSentence}`;
+  }
+}
+if (photoAlt.length > 220) {
+  const sliced = photoAlt.slice(0, 219);
+  const head = /\s/.test(photoAlt[219])
+    ? sliced.trimEnd()
+    : (() => {
+        const lastSpace = sliced.lastIndexOf(' ');
+        return (lastSpace > 0 ? sliced.slice(0, lastSpace) : sliced).trimEnd();
+      })();
+  photoAlt = `${head}…`;
+}
 
 const ogImage = `/og/photography/${photo.id}.jpg`;
 
@@ -151,7 +168,7 @@ const jsonLd = {
 
       <!-- The Photo Stage (100% Navbar Width = 1216px Edge-to-Edge) -->
       <div class="mb-8 sm:mb-12 w-full flex justify-center">
-        {imgMeta && (
+        {imgMeta && stage && (
           <a
             href={fullImageSrc}
             target="_blank"
@@ -162,14 +179,16 @@ const jsonLd = {
             title="Open original full-resolution image"
             aria-label={`Open original full-resolution image of ${photo.title}`}
           >
-            <Image
-              src={imgMeta}
-              alt={photo.title}
-              widths={[400, 665, 828, 1024, 1216]}
+            <img
+              src={stage.src}
+              srcset={stage.srcset}
               sizes="(min-width: 1280px) 1216px, (min-width: 1024px) calc(100vw - 4rem), (min-width: 640px) calc(100vw - 3rem), calc(100vw - 2rem)"
-              quality={68}
+              alt={photoAlt}
+              width={stage.width}
+              height={stage.height}
               loading="eager"
               fetchpriority="high"
+              decoding="async"
               class="w-full h-auto object-contain rounded-2xl transition-transform duration-300 group-hover:scale-[1.006]"
             />
           </a>

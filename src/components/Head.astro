@@ -19,7 +19,8 @@ export interface Props {
   description?: string;
   image?: ImageMetadata | string;
   imageAlt?: string;
-  type?: 'website' | 'article' | 'profile' | 'blog' | 'gallery';
+  type?: 'website' | 'article' | 'profile' | 'blog' | 'gallery' | 'webpage';
+  pageSameAs?: string | string[];
   publishedTime?: Date | string;
   modifiedTime?: Date | string;
   author?: string;
@@ -38,6 +39,7 @@ const {
   image = "/og/home.jpg",
   imageAlt,
   type = 'website',
+  pageSameAs,
   publishedTime,
   modifiedTime,
   author = themeConfig.author.name,
@@ -82,9 +84,10 @@ const modifiedISO = modifiedTime
 
 // Person Schema (used across site to establish author/creator identity)
 const sameAsLinks = [
-  ...Object.values(themeConfig.socials).filter((v): v is string => Boolean(v)),
   ...(themeConfig.author.wikidata ? [themeConfig.author.wikidata] : []),
+  ...Object.values(themeConfig.socials).filter((v): v is string => Boolean(v)),
 ];
+// Keep canonical @id anchored to our own domain; external registries (e.g. Wikidata) belong strictly in sameAs.
 const personId = `${themeConfig.site.url}/#person`;
 const personRef = { "@id": personId };
 const websiteId = `${themeConfig.site.url}/#website`;
@@ -182,6 +185,20 @@ if (type === 'article') {
     "url": canonicalURL.href,
     "description": description,
     "author": personRef
+  };
+} else if (type === 'webpage') {
+  const sameAsArray = pageSameAs
+    ? (Array.isArray(pageSameAs) ? pageSameAs : [pageSameAs]).filter((v): v is string => Boolean(v))
+    : [];
+  pageSchema = {
+    "@type": "WebPage",
+    "@id": `${canonicalURL.href}#webpage`,
+    "isPartOf": { "@id": websiteId },
+    "name": pageTitle,
+    "url": canonicalURL.href,
+    "description": description,
+    "about": personRef,
+    ...(sameAsArray.length > 0 ? { "sameAs": sameAsArray } : {})
   };
 } else {
   pageSchema = websiteSchema;

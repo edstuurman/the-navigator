@@ -219,6 +219,7 @@ const TAG_TEMPLATE_DIGEST = (() => {
     'src/components/TagList.astro',
     'src/styles/global.css',
     'src/theme.config.ts',
+    'src/utils/photoImages.ts',
   ]) {
     try {
       h.update(fs.readFileSync(p));

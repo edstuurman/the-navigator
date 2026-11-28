@@ -53,7 +53,8 @@ export async function getPictureLogs(): Promise<PictureLog[]> {
 
 /**
  * Comparator sorting image glob paths descending by `pubDate` (newest first),
- * with reverse numeric filename tie-breaking for photos captured on the same day.
+ * with reverse numeric photo ID tie-breaking (falling back to numeric filename)
+ * for photos captured on the same day.
  */
 export function comparePhotoPathsByDateDesc(pathA: string, pathB: string): number {
   const filenameA = pathA.split('/').pop() ?? '';
@@ -66,6 +67,10 @@ export function comparePhotoPathsByDateDesc(pathA: string, pathB: string): numbe
 
   if (timeB !== timeA) {
     return timeB - timeA;
+  }
+
+  if (photoA && photoB && photoB.id !== photoA.id) {
+    return photoB.id - photoA.id;
   }
 
   const numA = parseInt(filenameA.match(/(\d+)\.\w+$/)?.[1] ?? '0', 10);

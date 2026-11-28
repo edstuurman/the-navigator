@@ -8,13 +8,13 @@ import PathsForward from '../PathsForward.astro';
 import PaginationControls from '../PaginationControls.astro';
 import FormattedDate from '../FormattedDate.astro';
 import TagList from '../TagList.astro';
-import { Image } from 'astro:assets';
 import { getEntry } from 'astro:content';
 import {
   getLogDataBundle,
   getGalleryPhotoHref,
   type LogFilterKind,
 } from '../../utils/logTimeline';
+import { getResponsivePhotoImage } from '../../utils/photoImages';
 import { LOG_PAGE_SIZE } from '../../utils/pagination';
 import { isFeatureEnabled } from '../../utils/features';
 
@@ -67,6 +67,18 @@ const filterConfig: Record<
 const activeConfig = filterConfig[filter];
 const startIdx = (currentPage - 1) * LOG_PAGE_SIZE;
 const pageItems = activeConfig.items.slice(startIdx, startIdx + LOG_PAGE_SIZE);
+const resolvedPageItems = await Promise.all(
+  pageItems.map(async (item) =>
+    item.kind === 'photo'
+      ? {
+          ...item,
+          responsiveImg: item.imageMetadata
+            ? await getResponsivePhotoImage(item.imageMetadata, { maxWidth: 640 })
+            : null,
+        }
+      : item,
+  ),
+);
 
 const logPageEntry = await getEntry('pages', 'log');
 const logPageData = logPageEntry!.data;
@@ -174,7 +186,7 @@ const headerBadge = showPhotography
             class="absolute left-0 top-2 bottom-2 w-0.5 bg-gradient-to-b from-amber-500 via-amber-400/60 to-gray-300 dark:via-amber-500/40 dark:to-gray-700"
             aria-hidden="true"
           ></div>
-          {pageItems.map((item) => {
+          {resolvedPageItems.map((item) => {
             if (item.kind === 'note') {
               const { entry, Content, id: anchorId } = item;
               return (
@@ -269,7 +281,7 @@ const headerBadge = showPhotography
                 </article>
               );
             } else {
-              const { photo, imageMetadata } = item;
+              const { photo, responsiveImg } = item;
               const galleryHref = getGalleryPhotoHref(photo.id);
               return (
                 <article id={`photo-${photo.id}`} data-kind="photo" class="timeline-entry relative group/entry scroll-mt-28">
@@ -305,14 +317,16 @@ const headerBadge = showPhotography
                         aria-label={`View ${photo.title} in photo gallery`}
                         class="sm:col-span-5 relative block overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-900 ring-1 ring-gray-900/10 dark:ring-white/10 shadow-sm aspect-[4/3] w-full group/thumb z-10"
                       >
-                        {imageMetadata && (
-                          <Image
-                            src={imageMetadata}
-                            alt={photo.title}
-                            widths={[280, 360, 480]}
+                        {responsiveImg && (
+                          <img
+                            src={responsiveImg.src}
+                            srcset={responsiveImg.srcset}
                             sizes="(min-width: 640px) 320px, 85vw"
-                            quality={60}
+                            alt={photo.title}
+                            width={responsiveImg.width}
+                            height={responsiveImg.height}
                             loading="lazy"
+                            decoding="async"
                             class="w-full h-full object-cover transition-transform duration-300 group-hover/thumb:scale-105 group-hover/card:scale-105"
                           />
                         )}

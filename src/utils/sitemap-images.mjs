@@ -154,7 +154,16 @@ function getFrontmatterDatesMap() {
     frontmatterDatesMap.set('/blog/', new Date(maxBlogMs).toISOString());
   }
 
+  const parseGitMs = (relPath) => {
+    const iso = getGitCommitDate(path.resolve(process.cwd(), relPath));
+    const ms = iso ? Date.parse(iso) : NaN;
+    return !isNaN(ms) ? ms : 0;
+  };
+  const photoDetailTemplateMs = parseGitMs('src/pages/photography/[id].astro');
+  const galleryTemplateMs = parseGitMs('src/components/pages/PhotographyView.astro');
+
   let maxPhotoMs = 0;
+  let maxPhotoEffectiveMs = 0;
   const photoDir = path.resolve(process.cwd(), 'src/content/photography');
   if (fs.existsSync(photoDir)) {
     for (const file of fs.readdirSync(photoDir)) {
@@ -162,17 +171,22 @@ function getFrontmatterDatesMap() {
       const fm = readFrontmatter(path.join(photoDir, file));
       const idMatch = fm.match(/^id:\s*(\d+)/m);
       const iso = parseFmField(fm, 'updatedDate') ?? parseFmField(fm, 'pubDate');
-      if (idMatch && iso) {
-        frontmatterDatesMap.set(`/photography/${idMatch[1]}/`, iso);
-        const ms = new Date(iso).getTime();
-        if (ms > maxPhotoMs) maxPhotoMs = ms;
+      const fmMs = iso ? new Date(iso).getTime() : 0;
+      const mdGitMs = parseGitMs(path.join(photoDir, file));
+      const effectiveMs = Math.max(fmMs, mdGitMs, photoDetailTemplateMs);
+      if (idMatch && effectiveMs > 0) {
+        frontmatterDatesMap.set(`/photography/${idMatch[1]}/`, new Date(effectiveMs).toISOString());
       }
+      if (fmMs > maxPhotoMs) maxPhotoMs = fmMs;
+      if (effectiveMs > maxPhotoEffectiveMs) maxPhotoEffectiveMs = effectiveMs;
     }
   }
+  const galleryEffectiveMs = Math.max(maxPhotoEffectiveMs, galleryTemplateMs);
+  if (galleryEffectiveMs > 0) {
+    frontmatterDatesMap.set('/photography/', new Date(galleryEffectiveMs).toISOString());
+  }
   if (maxPhotoMs > 0) {
-    const maxPhotoIso = new Date(maxPhotoMs).toISOString();
-    frontmatterDatesMap.set('/photography/', maxPhotoIso);
-    frontmatterDatesMap.set('/log/photos/', maxPhotoIso);
+    frontmatterDatesMap.set('/log/photos/', new Date(maxPhotoMs).toISOString());
   }
 
   let maxNoteMs = 0;
@@ -431,12 +445,14 @@ export function getImagesForUrl(item, distDir = path.join(process.cwd(), 'dist')
         const srcMatch = m[0].match(/\bsrc="([^">]+)"/);
         if (!srcMatch) return;
         const href = srcMatch[1];
+        const altMatch = m[0].match(/\balt="([^"]*)"/i);
+        const alt = altMatch ? decodeHtmlEntities(altMatch[1]).trim() : '';
         const numMatch = href.match(/\/(\d+)\.[^/]+$/);
         const photoNum = numMatch ? numMatch[1] : (idx + 1);
         addImage({
           url: href,
-          title: `Photograph #${photoNum} from the photo roll — ${AUTHOR_NAME}`,
-          caption: `Moments from the photo roll in ${AUTHOR_LOCATION}.`,
+          title: alt ? `${alt} — ${AUTHOR_NAME}` : `Photograph #${photoNum} from the photo roll — ${AUTHOR_NAME}`,
+          caption: alt ? `${alt} — ${AUTHOR_NAME}` : `Moments from the photo roll in ${AUTHOR_LOCATION}.`,
           geoLocation: AUTHOR_LOCATION,
         });
       });
@@ -529,6 +545,9 @@ export function getLastModForUrl(item, distDir = path.join(process.cwd(), 'dist'
     const fmDates = getFrontmatterDatesMap();
     if (fmDates.has(normalizedPath)) {
       return fmDates.get(normalizedPath);
+    }
+    if (/^\/photography\/page\/\d+\/$/.test(normalizedPath) && fmDates.has('/photography/')) {
+      return fmDates.get('/photography/');
     }
 
     if (html) {

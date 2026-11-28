@@ -178,6 +178,7 @@ const LOG_TEMPLATE_DIGEST = (() => {
     'src/theme.config.ts',
     'src/data/techTerms.ts',
     'src/plugins/rehype-tech-tooltips.mjs',
+    'src/utils/photoImages.ts',
   ]) {
     try {
       h.update(fs.readFileSync(p));

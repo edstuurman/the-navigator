@@ -4,11 +4,13 @@ All notable changes to this starter theme and infrastructure blueprint are docum
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [2026-11-28] — The Navigator v1.6.0 Release
 
-### Added
+### Added & Changed
 - **Series Navigation & Related Reading**: Added multi-part `series` / `seriesOrder` frontmatter support with an inline `SeriesBox` navigation card, header series pill, and IDF-weighted tag similarity `RelatedPosts` grid on blog articles.
 - **Umami Engagement & Interaction Telemetry**: Added `window.__umamiQueue` / `window.__trackUmami` event queueing in `Head.astro` and progressive-enhancement tracking for genuine article reads (`article-read`), series and related-post clicks, code block copies, Mermaid diagram zoom modals, YouTube video plays, photo lightbox opens, and contact form submissions.
+- **Unified Photography Responsive Ladder & Canonical Image SEO**: Consolidated gallery, photo permalink, homepage carousel, [`/log/`](/log/), and [`/tags/`](/tags/) onto a shared 5-variant WebP ladder (`photoImages.ts`) with 1:1 canonical full-resolution matching across `<img src>`, `ImageObject.contentUrl`, lightbox links, and `sitemap-0.xml` `<image:loc>`, enriched scene `alt` text, and accurate photography `<lastmod>` timestamps (`sitemap-images.mjs`).
+- **Structured WebPage Schema & Canonical Person Anchoring**: Extended `Head.astro` with `'webpage'` JSON-LD + `pageSameAs` support while keeping `Person` `@id` strictly anchored to the site domain.
 
 ## [2026-11-19] — The Navigator v1.5.0 Release
 
